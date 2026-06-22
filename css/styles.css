@@ -239,15 +239,23 @@ body {
   border-radius: 1.5rem;
   background: rgba(248, 250, 252, 0.88);
   border: 1px solid rgba(148, 163, 184, 0.25);
-  padding: 1.25rem;
+  padding: 0.5rem;
   min-height: 120px;
   max-height: 120px;
 }
-.logo-card img {
-  height: 100%;
+.logo-card img,
+.logo-card-dashboard img {
+  max-height: 100%;
+  height: auto;
   width: auto;
-  max-width: 100%;
+  max-width: 90%;
   object-fit: contain;
+}
+.logo-card img {
+  max-height: 110px !important;
+}
+.logo-card-dashboard img {
+  max-height: 120px !important;
 }
 .dashboard-top {
   max-width: 100%;
@@ -256,17 +264,20 @@ body {
   background: rgba(241, 245, 249, 0.88);
   border: 1px solid rgba(148, 163, 184, 0.26);
   border-radius: 1.75rem;
-  padding: 1.5rem;
+  padding: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 140px;
   max-height: 140px;
 }
-.logo-card-dashboard img {
-  height: 100%;
+.logo-card-dashboard--emphasis {
+  padding: 0.5rem;
+}
+.logo-card-dashboard--emphasis img {
+  max-height: 130px !important;
   width: auto;
-  max-width: 100%;
+  max-width: 95%;
   object-fit: contain;
 }
 .dashboard-video-wrap {

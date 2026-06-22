@@ -277,7 +277,7 @@ body {
 .logo-card-dashboard--emphasis img {
   max-height: 400px !important;
   width: auto;
-  max-width: 100%;
+  max-width: 90%;
   object-fit: contain;
 }
 .dashboard-video-wrap {
@@ -325,7 +325,7 @@ body {
   border-radius: 1.25rem;
   font-size: 0.95rem;
   text-align: center;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 100px 360px rgba(15, 23, 42, 0.12);
 }
 .auth-status.hidden {
   display: none;

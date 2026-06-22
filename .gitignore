@@ -150,3 +150,6 @@ docker-compose.override.yml
 .idea/
 .vagrant/
 Vagrantfile.local
+
+# Local credentials file (no commitear)
+js/data/superadmins.local.js

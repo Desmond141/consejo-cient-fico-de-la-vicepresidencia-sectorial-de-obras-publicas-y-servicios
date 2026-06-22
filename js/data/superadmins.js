@@ -1,13 +1,16 @@
 (function() {
   const STORAGE_KEY = 'obras_dashboard_superadmins';
 
-  const DEFAULT_SUPERADMINS = [
-    { id: 'sa1', nombre: 'Trino Baloa', username: 'Trino.B', email: 'trino.b@obras.gob.ve', rol: 'Superadmin', passwordHash: btoa('TrinoB123') },
-    { id: 'sa2', nombre: 'Alexander Marin', username: 'Alexander.M', email: 'alexander.m@obras.gob.ve', rol: 'Superadmin', passwordHash: btoa('AlexanderM123') },
-    { id: 'sa3', nombre: 'Kevinson Campos', username: 'Kevinson.C', email: 'kevinson.c@obras.gob.ve', rol: 'Superadmin', passwordHash: btoa('KevinsonC123') },
-    { id: 'sa4', nombre: 'Gingerlin Molina', username: 'Gingerlin.M', email: 'gingerlin.m@obras.gob.ve', rol: 'Superadmin', passwordHash: btoa('GingerlinM123') },
-    { id: 'sa5', nombre: 'Programador', username: 'Jonas', email: 'jonas@obras.gob.ve', rol: 'Programador', passwordHash: btoa('Jonasmanda1410') }
-  ];
+  // Si existe `window.LOCAL_SUPERADMINS` (archivo local git-ignored), se usará.
+  const DEFAULT_SUPERADMINS = (window.LOCAL_SUPERADMINS && Array.isArray(window.LOCAL_SUPERADMINS) && window.LOCAL_SUPERADMINS.length)
+    ? window.LOCAL_SUPERADMINS
+    : [
+      { id: 'sa1', nombre: 'Trino Baloa', username: 'Trino.B', email: 'trino.b@obras.gob.ve', rol: 'Superadmin', passwordHash: btoa('TrinoB123') },
+      { id: 'sa2', nombre: 'Alexander Marin', username: 'Alexander.M', email: 'alexander.m@obras.gob.ve', rol: 'Superadmin', passwordHash: btoa('AlexanderM123') },
+      { id: 'sa3', nombre: 'Kevinson Campos', username: 'Kevinson.C', email: 'kevinson.c@obras.gob.ve', rol: 'Superadmin', passwordHash: btoa('KevinsonC123') },
+      { id: 'sa4', nombre: 'Gingerlin Molina', username: 'Gingerlin.M', email: 'gingerlin.m@obras.gob.ve', rol: 'Superadmin', passwordHash: btoa('GingerlinM123') },
+      { id: 'sa5', nombre: 'Programador', username: 'Jonas', email: 'jonas@obras.gob.ve', rol: 'Programador', passwordHash: btoa('Jonasmanda1410') }
+    ];
 
   function hash(value) {
     return btoa(value || '');

@@ -154,4 +154,4 @@ Vagrantfile.local
 # Local credentials file (no commitear)
 js/data/superadmins.local.js
 
-# Ignorar archivos de video grandes
+

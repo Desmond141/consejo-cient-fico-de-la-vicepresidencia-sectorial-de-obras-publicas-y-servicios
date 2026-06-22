@@ -351,6 +351,45 @@ const btnPasteles = document.getElementById('btn-pasteles');
 if (btnBarras) btnBarras.addEventListener('click', () => setTipoGrafico('barras'));
 if (btnPasteles) btnPasteles.addEventListener('click', () => setTipoGrafico('pasteles'));
 
+const videoElement = document.getElementById('obra-video');
+const audioToggle = document.getElementById('video-audio-toggle');
+const volumeSlider = document.getElementById('video-volume-slider');
+const volumeLabel = document.getElementById('video-volume-label');
+
+if (videoElement) {
+  videoElement.volume = 0.5;
+  videoElement.muted = true;
+}
+
+if (audioToggle && videoElement) {
+  audioToggle.addEventListener('click', () => {
+    if (videoElement.muted) {
+      videoElement.muted = false;
+      audioToggle.textContent = 'Silenciar';
+    } else {
+      videoElement.muted = true;
+      audioToggle.textContent = 'Activar audio';
+    }
+  });
+}
+
+if (volumeSlider && videoElement && volumeLabel) {
+  volumeSlider.addEventListener('input', () => {
+    const volume = Number(volumeSlider.value) / 100;
+    videoElement.volume = volume;
+    volumeLabel.textContent = `${volumeSlider.value}%`;
+    if (volume === 0) {
+      videoElement.muted = true;
+      if (audioToggle) audioToggle.textContent = 'Activar audio';
+    } else {
+      if (videoElement.muted) {
+        videoElement.muted = false;
+        if (audioToggle) audioToggle.textContent = 'Silenciar';
+      }
+    }
+  });
+}
+
 // Event listeners for navigation
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => cambiarVista(btn.dataset.vista));

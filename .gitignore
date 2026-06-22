@@ -153,5 +153,3 @@ Vagrantfile.local
 
 # Local credentials file (no commitear)
 js/data/superadmins.local.js
-
-

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Control de Avance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-page font-sans min-h-screen antialiased">
+  <div class="mesh-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <main class="relative z-10 px-4 py-10 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="brand-strip flex flex-col gap-4 p-4 sm:p-5 lg:p-6 rounded-3xl border border-sky-400/10 bg-slate-950/60 shadow-2xl shadow-slate-950/20">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p class="text-xs uppercase tracking-[0.3em] font-semibold text-sky-300/90">Acceso seguro</p>
+            <h1 class="mt-2 text-3xl sm:text-4xl font-bold text-white">Panel de Superadmins</h1>
+            <p class="mt-2 text-sm text-slate-400 max-w-xl">Inicia sesión para acceder al dashboard y administrar los datos de control de avance.</p>
+          </div>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div class="logo-card">
+              <img src="assets/logos/Vicepresidencia de servicio.png" alt="Vicepresidencia de Servicios" />
+            </div>
+            <div class="logo-card">
+              <img src="assets/logos/Consejo Cientifico.png" alt="Consejo Científico" />
+            </div>
+            <div class="logo-card">
+              <img src="assets/logos/Obras Publicas.png" alt="Obras Públicas" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-12 flex justify-center">
+        <div class="w-full max-w-xl login-panel rounded-3xl p-8 sm:p-10">
+          <div id="auth-status" class="auth-status hidden">Validando credenciales de Usuario</div>
+          <div class="mb-8">
+            <p class="text-sm uppercase tracking-[0.25em] text-sky-400 font-semibold">Ingreso de superadmin</p>
+            <h2 class="mt-4 text-3xl font-bold text-white">Bienvenido de nuevo</h2>
+            <p class="mt-2 text-slate-400">Introduce tu correo y contraseña para continuar.</p>
+          </div>
+          <form id="login-form" class="space-y-5">
+            <div>
+              <label class="block text-sm font-medium text-slate-300" for="email">Usuario o correo electrónico</label>
+              <input id="email" name="email" type="text" required class="login-input mt-2 w-full rounded-2xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:ring-sky-400 focus:border-sky-400" placeholder="usuario o correo@obras.gob.ve" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-300" for="password">Contraseña</label>
+              <input id="password" name="password" type="password" required class="login-input mt-2 w-full rounded-2xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:ring-sky-400 focus:border-sky-400" placeholder="Contraseña" />
+            </div>
+            <div id="login-error" class="login-error text-sm hidden">Correo o contraseña incorrectos.</div>
+            <button type="submit" class="w-full rounded-2xl bg-sky-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-300">Iniciar sesión</button>
+          </form>
+          <p class="mt-6 text-xs text-slate-500">Datos de superadmins iniciales cargados en la base de datos local. Puedes cambiar las credenciales si lo deseas.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/data/superadmins.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+</html>

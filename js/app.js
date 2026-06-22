@@ -356,9 +356,21 @@ const audioToggle = document.getElementById('video-audio-toggle');
 const volumeSlider = document.getElementById('video-volume-slider');
 const volumeLabel = document.getElementById('video-volume-label');
 
+const videoFallback = document.getElementById('video-fallback');
+
 if (videoElement) {
   videoElement.volume = 0.5;
   videoElement.muted = true;
+  videoElement.addEventListener('error', () => {
+    if (videoFallback) videoFallback.classList.remove('hidden');
+  });
+  videoElement.addEventListener('stalled', () => {
+    if (videoFallback) videoFallback.classList.remove('hidden');
+  });
+  videoElement.addEventListener('loadeddata', () => {
+    if (videoFallback) videoFallback.classList.add('hidden');
+  });
+  if (volumeLabel) volumeLabel.textContent = '50%';
 }
 
 if (audioToggle && videoElement) {

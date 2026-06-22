@@ -121,10 +121,15 @@
                 <span class="text-xs text-slate-500">Reproducción en bucle</span>
               </div>
               <div class="dashboard-video-wrap rounded-3xl overflow-hidden border border-slate-700/50 bg-slate-950/70">
-                <video id="obra-video" class="dashboard-video w-full h-full" autoplay muted loop playsinline>
+                <video id="obra-video" class="dashboard-video w-full h-full" controls preload="metadata" loop playsinline>
                   <source src="assets/Videos/las delicias semana del 13 al 20 jun final.mp4" type="video/mp4">
                   Tu navegador no soporta la reproducción de video.
                 </video>
+                <div id="video-fallback" class="hidden px-4 py-3 text-sm text-slate-300 bg-slate-900/80 border border-slate-700 rounded-xl mt-4">
+                  Si GitHub Pages no reproduce bien el video, puedes descargarlo y reproducirlo localmente:
+                  <a href="assets/Videos/las delicias semana del 13 al 20 jun final.mp4" download class="text-sky-300 underline">Descargar video</a>.
+                  Para un mejor rendimiento web, considera usar un archivo más ligero o un servicio de hosting externo.
+                </div>
               </div>
               <div class="video-controls mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button id="video-audio-toggle" class="glass rounded-2xl px-4 py-2 text-sm font-semibold text-slate-100 hover:bg-sky-400/10 transition">

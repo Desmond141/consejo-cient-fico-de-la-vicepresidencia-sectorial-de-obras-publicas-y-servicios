@@ -240,25 +240,25 @@ body {
   background: rgba(248, 250, 252, 0.88);
   border: 1px solid rgba(148, 163, 184, 0.25);
   padding: 0.5rem;
-  min-height: 120px;
+  min-height: 140px;
   max-height: 120px;
 }
 .logo-card img,
 .logo-card-dashboard img {
-  max-height: 100%;
+  max-height: 120px;
   height: auto;
   width: auto;
-  max-width: 90%;
+  max-width: 100%;
   object-fit: contain;
 }
 .logo-card img {
-  max-height: 110px !important;
+  max-height: 200px !important;
 }
 .logo-card-dashboard img {
-  max-height: 120px !important;
+  max-height: 200px !important;
 }
 .dashboard-top {
-  max-width: 100%;
+  max-width: 82%;
 }
 .logo-card-dashboard {
   background: rgba(241, 245, 249, 0.88);
@@ -268,16 +268,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 140px;
-  max-height: 140px;
+  min-height: 150px;
+  max-height: 100px;
 }
 .logo-card-dashboard--emphasis {
-  padding: 0.5rem;
+  padding: 2.rem;
 }
 .logo-card-dashboard--emphasis img {
-  max-height: 130px !important;
+  max-height: 400px !important;
   width: auto;
-  max-width: 95%;
+  max-width: 100%;
   object-fit: contain;
 }
 .dashboard-video-wrap {

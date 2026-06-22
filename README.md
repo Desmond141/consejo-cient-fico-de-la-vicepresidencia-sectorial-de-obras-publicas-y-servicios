@@ -42,6 +42,18 @@ Alternativas de implementación
 - Opción B — Servidor de autenticación: el frontend delega en una API que valida credenciales y devuelve un token (JWT o sesión).
 - Opción C — Uso de un almacén de secretos (HashiCorp Vault, AWS Secrets Manager): para proyectos desplegados en infra nube.
 
+Cambios recientes en la interfaz del dashboard
+- Archivos afectados: `index.html`, `login.html`, `css/styles.css`.
+- Ajustes aplicados:
+  - Se mejoró la escala interna de los logos en los contenedores sin aumentar el tamaño total de la caja.
+  - Se redujo el `padding` de `.logo-card` y `.logo-card-dashboard` para que la imagen del logo ocupe más área visible.
+  - Se amplió el `max-width` de las imágenes a `90%`/`95%` y se forzó un `max-height` mayor con `!important` para que el logo luzca más grande.
+  - Se sustituyó la clase `logo-card-dashboard--large` por `logo-card-dashboard--emphasis` y se eliminó la necesidad de agrandar la tarjeta principal.
+- Motivo de los cambios:
+  - El logo de `Consejo Científico` estaba listo y visible, pero demasiado pequeño dentro del mismo contenedor.
+  - El objetivo era lograr legibilidad y presencia sin romper el diseño general del dashboard ni alterar el tamaño de las tarjetas.
+  - El login también requería que el logo fuera más visible en su tarjeta de credenciales, manteniendo el mismo layout.
+
 Advertencias finales
 - Aunque el archivo local está git-ignored, cualquier persona con acceso al sistema de archivos del servidor/PC donde se aloje el proyecto podrá leerlo. Para producción, usar siempre autenticación basada en servidor.
 

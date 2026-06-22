@@ -155,4 +155,3 @@ Vagrantfile.local
 js/data/superadmins.local.js
 
 # Ignorar archivos de video grandes
-assets/Videos/*.mp4

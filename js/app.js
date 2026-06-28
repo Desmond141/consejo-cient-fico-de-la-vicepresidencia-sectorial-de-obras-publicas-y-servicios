@@ -406,3 +406,24 @@ if (volumeSlider && videoElement && volumeLabel) {
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => cambiarVista(btn.dataset.vista));
 });
+
+// Event listener for Agregar Dato form
+const formAgregarDato = document.getElementById('form-agregar-dato');
+const formSuccessMessage = document.getElementById('form-success-message');
+
+if (formAgregarDato) {
+  formAgregarDato.addEventListener('submit', (e) => {
+    e.preventDefault();
+    // Simular el guardado de datos mostrando el mensaje de éxito
+    if (formSuccessMessage) {
+      formSuccessMessage.classList.remove('hidden');
+      
+      // Ocultar mensaje de éxito después de 4 segundos
+      setTimeout(() => {
+        formSuccessMessage.classList.add('hidden');
+      }, 4000);
+    }
+    // Limpiar el formulario
+    formAgregarDato.reset();
+  });
+}

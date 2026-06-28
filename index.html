@@ -54,6 +54,10 @@
           <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
           <span class="text-left">Pin 3: Desglose por Capítulos</span>
         </button>
+        <button id="btn-nav-agregar" data-vista="agregar" class="hidden nav-btn flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap lg:whitespace-normal lg:w-full shrink-0 lg:shrink text-emerald-300 hover:text-emerald-200">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <span class="text-left">Agregar dato</span>
+        </button>
       </div>
 
       <div class="hidden lg:block p-4 mt-auto border-t border-sky-300/10">
@@ -86,10 +90,20 @@
           </div>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="text-slate-400 text-sm">Sesión activa para administración de superadmins.</div>
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <span id="welcome-user" class="text-white font-semibold"></span>
-            <button id="logout-btn" class="rounded-2xl bg-slate-900/70 border border-slate-700 px-4 py-2 text-sm text-sky-200 transition hover:bg-slate-800">Cerrar sesión</button>
+          <div class="text-slate-400 text-sm" id="header-description">Vista pública del estado del proyecto.</div>
+          
+          <div id="auth-section" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <!-- Botón de Iniciar Sesión (visible cuando NO hay sesión) -->
+            <a href="login.html" id="login-link-btn" class="rounded-2xl bg-sky-500/20 border border-sky-400/30 px-4 py-2 text-sm text-sky-300 transition hover:bg-sky-500/30 font-semibold flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+              Iniciar sesión
+            </a>
+
+            <!-- Contenedor de usuario logueado (visible cuando SÍ hay sesión) -->
+            <div id="logged-in-container" class="hidden flex-col gap-2 sm:flex-row sm:items-center">
+              <span id="welcome-user" class="text-white font-semibold"></span>
+              <button id="logout-btn" class="rounded-2xl bg-slate-900/70 border border-slate-700 px-4 py-2 text-sm text-sky-200 transition hover:bg-slate-800">Cerrar sesión</button>
+            </div>
           </div>
         </div>
       </div>
@@ -310,6 +324,68 @@
             </table>
           </div>
           <div id="lista-capitulos" class="sm:hidden divide-y divide-white/5"></div>
+        </div>
+      </section>
+      <!-- Pin: Agregar Dato (Solo Superadmin) -->
+      <section id="vista-agregar" class="vista">
+        <header class="mb-8">
+          <span class="inline-block text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-400/20 px-3 py-1 rounded-full mb-3">Superadmin</span>
+          <h2 class="text-2xl font-bold text-slate-100">Agregar Avance de Obra</h2>
+          <p class="text-slate-500 mt-1 text-sm">Registra nuevos datos de progreso para los capítulos de la Plaza Las Delicias.</p>
+        </header>
+        <div class="max-w-3xl">
+          <div class="glass rounded-2xl p-6 sm:p-8">
+            <div id="form-success-message" class="hidden mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-sm">
+              <span class="font-bold">¡Guardado con éxito!</span> Los datos han sido enviados correctamente (simulación).
+            </div>
+            <form id="form-agregar-dato" class="space-y-6">
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <!-- Capítulo 1 -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">1. Obras preliminares (%)</label>
+                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                </div>
+                <!-- Capítulo 2 -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">2. Movimiento de tierra (%)</label>
+                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                </div>
+                <!-- Capítulo 3 -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">3. Construcción de fundaciones (%)</label>
+                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                </div>
+                <!-- Capítulo 4 -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">4. Construcción de super estructura (%)</label>
+                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                </div>
+                <!-- Capítulo 5 -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">5. Instalación eléctrica (%)</label>
+                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                </div>
+                <!-- Capítulo 6 -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">6. Instalación sanitaria (riego) (%)</label>
+                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                </div>
+                <!-- Capítulo 7 -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">7. Intervención de exteriores (%)</label>
+                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                </div>
+              </div>
+              
+              <div class="pt-4 border-t border-slate-700/50 flex justify-end">
+                <button type="submit" class="rounded-xl bg-emerald-500/20 border border-emerald-400/30 px-6 py-2.5 text-sm text-emerald-300 transition hover:bg-emerald-500/30 font-semibold flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  Guardar Avance
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
 

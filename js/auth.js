@@ -59,11 +59,10 @@
 
   function initDashboardPage() {
     const logoutBtn = document.getElementById('logout-btn');
-    renderLoggedUser();
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
         clearSession();
-        redirectToLogin();
+        window.location.reload(); // Recargar para volver a la vista pública
       });
     }
   }
@@ -99,14 +98,34 @@
   }
 
   function protectDashboard() {
-    showAuthStatus('Validando credenciales de Usuario');
     const session = getSession();
+    const loginLink = document.getElementById('login-link-btn');
+    const loggedInContainer = document.getElementById('logged-in-container');
+    const btnAgregar = document.getElementById('btn-nav-agregar');
+    const headerDesc = document.getElementById('header-description');
+
     if (!session) {
-      redirectToLogin();
-      return;
+      // Estado público (no logueado)
+      if (loginLink) loginLink.classList.remove('hidden');
+      if (loggedInContainer) loggedInContainer.classList.add('hidden');
+      if (btnAgregar) btnAgregar.classList.add('hidden');
+      if (headerDesc) headerDesc.textContent = 'Vista pública del estado del proyecto.';
+    } else {
+      // Estado logueado
+      if (loginLink) loginLink.classList.add('hidden');
+      if (loggedInContainer) {
+        loggedInContainer.classList.remove('hidden');
+        loggedInContainer.classList.add('flex');
+      }
+      if (headerDesc) headerDesc.textContent = 'Sesión activa para administración.';
+      renderLoggedUser();
+
+      // Habilitar opción de agregar dato si es superadmin
+      if (session.rol === 'Superadmin' && btnAgregar) {
+        btnAgregar.classList.remove('hidden');
+      }
     }
     hideAuthStatus();
-    renderLoggedUser();
   }
 
   document.addEventListener('DOMContentLoaded', () => {

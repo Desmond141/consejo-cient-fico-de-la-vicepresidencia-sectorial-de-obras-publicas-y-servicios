@@ -1,11 +1,7 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-  host: process.env.DB_HOST || 'db',
-  user: process.env.DB_USER || 'admin',
-  password: process.env.DB_PASSWORD || 'password',
-  database: process.env.DB_NAME || 'obras_dashboard',
-  port: process.env.DB_PORT || 5432,
+  connectionString: process.env.POSTGRES_URL,
 });
 
 async function initDB() {

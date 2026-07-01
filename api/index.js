@@ -9,8 +9,19 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Servir frontend estático
-app.use(express.static(path.join(__dirname, '../frontend')));
+// Middleware para inicializar DB de forma lazy (solo la primera vez)
+let dbInitialized = false;
+app.use(async (req, res, next) => {
+  if (!dbInitialized) {
+    try {
+      await db.initDB();
+      dbInitialized = true;
+    } catch (err) {
+      console.error('Error inicializando BD:', err);
+    }
+  }
+  next();
+});
 
 // --- API ROUTES ---
 
@@ -100,15 +111,6 @@ app.delete('/api/capitulos/:id', async (req, res) => {
   }
 });
 
-// Fallback para SPA / Frontend
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
+// Vercel maneja el frontend, así que quitamos el fallback manual de index.html
 
-// Iniciar servidor con retardo para asegurar que la DB esté lista
-setTimeout(async () => {
-  await db.initDB();
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-  });
-}, 5000); // 5s para que Postgres inicie
+module.exports = app;

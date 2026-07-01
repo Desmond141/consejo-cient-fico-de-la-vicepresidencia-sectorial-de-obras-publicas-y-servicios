@@ -340,41 +340,32 @@
             </div>
             <form id="form-agregar-dato" class="space-y-6">
               
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <!-- Capítulo 1 -->
+              <div class="grid grid-cols-1 gap-6">
+                <!-- Capítulo destino -->
                 <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">1. Obras preliminares (%)</label>
-                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Capítulo o Fase del Proyecto</label>
+                  <select id="select-capitulo" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors cursor-pointer appearance-none">
+                    <!-- Opciones se llenarán dinámicamente -->
+                  </select>
                 </div>
-                <!-- Capítulo 2 -->
-                <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">2. Movimiento de tierra (%)</label>
-                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+
+                <!-- Nombre del nuevo capítulo (Oculto por defecto) -->
+                <div id="container-nuevo-capitulo" class="hidden">
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Nombre del Nuevo Capítulo</label>
+                  <input type="text" id="input-nuevo-capitulo" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="Ej: Construcción de fuentes">
                 </div>
-                <!-- Capítulo 3 -->
+
+                <!-- Descripción de la Actividad -->
                 <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">3. Construcción de fundaciones (%)</label>
-                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Descripción de la Actividad Realizada</label>
+                  <input type="text" id="input-descripcion" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="Ej: Vaciado de concreto en la zona norte..." required>
                 </div>
-                <!-- Capítulo 4 -->
+
+                <!-- Nuevo Avance del Capítulo -->
                 <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">4. Construcción de super estructura (%)</label>
-                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
-                </div>
-                <!-- Capítulo 5 -->
-                <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">5. Instalación eléctrica (%)</label>
-                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
-                </div>
-                <!-- Capítulo 6 -->
-                <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">6. Instalación sanitaria (riego) (%)</label>
-                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
-                </div>
-                <!-- Capítulo 7 -->
-                <div>
-                  <label class="block text-sm font-medium text-slate-300 mb-2">7. Intervención de exteriores (%)</label>
-                  <input type="number" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100">
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Nuevo Progreso del Capítulo (%)</label>
+                  <input type="number" id="input-progreso" min="0" max="100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-colors" placeholder="0 - 100" required>
+                  <p class="text-xs text-slate-500 mt-2">Ingresa el porcentaje total en el que se sitúa el capítulo tras esta actividad.</p>
                 </div>
               </div>
               
@@ -386,6 +377,41 @@
               </div>
             </form>
           </div>
+          
+          <!-- Nueva caja para eliminar datos -->
+          <div class="glass rounded-2xl p-6 sm:p-8 mt-8 border-rose-500/20">
+            <header class="mb-6">
+              <h3 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                Eliminar Capítulo
+              </h3>
+              <p class="text-slate-500 mt-1 text-sm">Selecciona un capítulo existente para eliminarlo permanentemente del proyecto.</p>
+            </header>
+
+            <div id="form-delete-message" class="hidden mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-400/20 text-rose-300 text-sm">
+              <span class="font-bold">¡Eliminado con éxito!</span> El capítulo ha sido borrado del sistema.
+            </div>
+
+            <form id="form-eliminar-dato" class="space-y-6">
+              <div class="grid grid-cols-1 gap-6">
+                <!-- Capítulo a eliminar -->
+                <div>
+                  <label class="block text-sm font-medium text-slate-300 mb-2">Capítulo o Fase a Eliminar</label>
+                  <select id="select-capitulo-eliminar" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 transition-colors cursor-pointer appearance-none" required>
+                    <!-- Opciones se llenarán dinámicamente -->
+                  </select>
+                </div>
+              </div>
+              
+              <div class="pt-4 border-t border-slate-700/50 flex justify-end">
+                <button type="submit" class="rounded-xl bg-rose-500/20 border border-rose-400/30 px-6 py-2.5 text-sm text-rose-300 transition hover:bg-rose-500/30 font-semibold flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  Eliminar Capítulo
+                </button>
+              </div>
+            </form>
+          </div>
+
         </div>
       </section>
 

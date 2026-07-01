@@ -1,5 +1,4 @@
-const AVANCE_GLOBAL = 60;
-const capitulos = [
+const defaultCapitulos = [
   { nombre: 'Obras preliminares', progreso: 100 },
   { nombre: 'Movimiento de tierra', progreso: 100 },
   { nombre: 'Construcción de fundaciones', progreso: 70 },
@@ -8,6 +7,23 @@ const capitulos = [
   { nombre: 'Instalación sanitaria (riego)', progreso: 60 },
   { nombre: 'Intervención de exteriores', progreso: 40 },
 ];
+
+let capitulos = JSON.parse(localStorage.getItem('obras_dashboard_capitulos'));
+if (!capitulos || !Array.isArray(capitulos) || capitulos.length === 0) {
+  capitulos = [...defaultCapitulos];
+}
+
+function calcularAvanceGlobal() {
+  if (capitulos.length === 0) return 0;
+  const totalProgreso = capitulos.reduce((sum, cap) => sum + cap.progreso, 0);
+  return Math.round(totalProgreso / capitulos.length);
+}
+
+function guardarCapitulos() {
+  localStorage.setItem('obras_dashboard_capitulos', JSON.stringify(capitulos));
+}
+
+let AVANCE_GLOBAL = calcularAvanceGlobal();
 
 const CIRCUNFERENCIA = 2 * Math.PI * 52;
 let tipoGrafico = 'barras';
@@ -410,20 +426,123 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 // Event listener for Agregar Dato form
 const formAgregarDato = document.getElementById('form-agregar-dato');
 const formSuccessMessage = document.getElementById('form-success-message');
+const selectCapitulo = document.getElementById('select-capitulo');
+const containerNuevoCapitulo = document.getElementById('container-nuevo-capitulo');
+const inputNuevoCapitulo = document.getElementById('input-nuevo-capitulo');
+
+const formEliminarDato = document.getElementById('form-eliminar-dato');
+const selectCapituloEliminar = document.getElementById('select-capitulo-eliminar');
+const formDeleteMessage = document.getElementById('form-delete-message');
+
+function poblarSelectCapitulos() {
+  if (selectCapitulo) {
+    selectCapitulo.innerHTML = '';
+    capitulos.forEach((cap, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.textContent = `${index + 1}. ${cap.nombre}`;
+      selectCapitulo.appendChild(option);
+    });
+    const optionNuevo = document.createElement('option');
+    optionNuevo.value = 'nuevo';
+    optionNuevo.textContent = '➕ Crear nuevo capítulo...';
+    selectCapitulo.appendChild(optionNuevo);
+  }
+
+  if (selectCapituloEliminar) {
+    selectCapituloEliminar.innerHTML = '';
+    capitulos.forEach((cap, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.textContent = `${index + 1}. ${cap.nombre}`;
+      selectCapituloEliminar.appendChild(option);
+    });
+  }
+}
+
+if (selectCapitulo && containerNuevoCapitulo) {
+  selectCapitulo.addEventListener('change', (e) => {
+    if (e.target.value === 'nuevo') {
+      containerNuevoCapitulo.classList.remove('hidden');
+      inputNuevoCapitulo.setAttribute('required', 'true');
+    } else {
+      containerNuevoCapitulo.classList.add('hidden');
+      inputNuevoCapitulo.removeAttribute('required');
+    }
+  });
+}
 
 if (formAgregarDato) {
+  poblarSelectCapitulos();
+
   formAgregarDato.addEventListener('submit', (e) => {
     e.preventDefault();
-    // Simular el guardado de datos mostrando el mensaje de éxito
+    
+    const valorSeleccionado = selectCapitulo.value;
+    const progresoIngresado = parseFloat(document.getElementById('input-progreso').value);
+    
+    if (valorSeleccionado === 'nuevo') {
+      const nombreNuevo = inputNuevoCapitulo.value.trim();
+      if (nombreNuevo) {
+        capitulos.push({ nombre: nombreNuevo, progreso: progresoIngresado });
+      }
+    } else {
+      const index = parseInt(valorSeleccionado);
+      if (!isNaN(index) && capitulos[index]) {
+        capitulos[index].progreso = progresoIngresado;
+      }
+    }
+    
+    // Guardar, recalcular global y re-renderizar
+    guardarCapitulos();
+    AVANCE_GLOBAL = calcularAvanceGlobal();
+    
+    // Actualizar select y vistas
+    poblarSelectCapitulos();
+    renderGraficoDashboard();
+    renderTabla();
+    
+    // Ocultar input nuevo capítulo
+    containerNuevoCapitulo.classList.add('hidden');
+    inputNuevoCapitulo.removeAttribute('required');
+
     if (formSuccessMessage) {
       formSuccessMessage.classList.remove('hidden');
-      
-      // Ocultar mensaje de éxito después de 4 segundos
       setTimeout(() => {
         formSuccessMessage.classList.add('hidden');
       }, 4000);
     }
-    // Limpiar el formulario
     formAgregarDato.reset();
+  });
+}
+
+if (formEliminarDato) {
+  formEliminarDato.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const indexStr = selectCapituloEliminar.value;
+    if (indexStr === "") return;
+    
+    const index = parseInt(indexStr);
+    if (!isNaN(index) && capitulos[index]) {
+      // Eliminar el capítulo
+      capitulos.splice(index, 1);
+      
+      // Guardar, recalcular global y re-renderizar
+      guardarCapitulos();
+      AVANCE_GLOBAL = calcularAvanceGlobal();
+      
+      // Actualizar select y vistas
+      poblarSelectCapitulos();
+      renderGraficoDashboard();
+      renderTabla();
+      
+      if (formDeleteMessage) {
+        formDeleteMessage.classList.remove('hidden');
+        setTimeout(() => {
+          formDeleteMessage.classList.add('hidden');
+        }, 4000);
+      }
+    }
   });
 }

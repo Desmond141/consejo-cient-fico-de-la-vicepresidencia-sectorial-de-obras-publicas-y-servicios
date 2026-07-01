@@ -30,7 +30,12 @@ const router = express.Router();
 
 // GET: Prueba de conexión
 router.get('/test', (req, res) => {
-  res.json({ status: 'ok', dbInitialized });
+  res.json({ 
+    status: 'ok', 
+    dbInitialized,
+    hasPostgresUrl: !!process.env.POSTGRES_URL,
+    hasDatabaseUrl: !!process.env.DATABASE_URL
+  });
 });
 
 // GET: Obtener todos los capítulos con su historial

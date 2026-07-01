@@ -1,16 +1,24 @@
-const defaultCapitulos = [
-  { nombre: 'Obras preliminares', progreso: 100 },
-  { nombre: 'Movimiento de tierra', progreso: 100 },
-  { nombre: 'Construcción de fundaciones', progreso: 70 },
-  { nombre: 'Construcción de super estructura', progreso: 60 },
-  { nombre: 'Instalación eléctrica', progreso: 70 },
-  { nombre: 'Instalación sanitaria (riego)', progreso: 60 },
-  { nombre: 'Intervención de exteriores', progreso: 40 },
-];
+let capitulos = [];
+let AVANCE_GLOBAL = 0;
 
-let capitulos = JSON.parse(localStorage.getItem('obras_dashboard_capitulos'));
-if (!capitulos || !Array.isArray(capitulos) || capitulos.length === 0) {
-  capitulos = [...defaultCapitulos];
+// URL base de la API (asume mismo host y puerto)
+const API_URL = '/api/capitulos';
+
+async function fetchCapitulos() {
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error('Error en API');
+    const data = await res.json();
+    capitulos = data;
+    // Asegurar que existan los historiales por si acaso
+    capitulos.forEach(cap => {
+      if (!cap.historial) cap.historial = [];
+    });
+  } catch (err) {
+    console.error('No se pudo cargar de la DB, usando fallback local.', err);
+    // Fallback temporal si la API falla
+    capitulos = [];
+  }
 }
 
 function calcularAvanceGlobal() {
@@ -19,11 +27,7 @@ function calcularAvanceGlobal() {
   return Math.round(totalProgreso / capitulos.length);
 }
 
-function guardarCapitulos() {
-  localStorage.setItem('obras_dashboard_capitulos', JSON.stringify(capitulos));
-}
 
-let AVANCE_GLOBAL = calcularAvanceGlobal();
 
 const CIRCUNFERENCIA = 2 * Math.PI * 52;
 let tipoGrafico = 'barras';
@@ -256,11 +260,11 @@ function claseBadge(p) {
 
 function renderTabla() {
   const filas = capitulos.map((c, i) => `
-    <tr class="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+    <tr class="border-b border-white/[0.03] hover:bg-white/[0.05] transition-colors cursor-pointer" onclick="abrirDetalleCapitulo(${i})">
       <td class="px-6 py-4">
         <div class="flex items-center gap-3">
           <span class="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-400/20 text-xs font-bold text-sky-400 flex items-center justify-center">${i + 1}</span>
-          <span class="font-medium text-slate-300 text-sm">${c.nombre}</span>
+          <span class="font-medium text-slate-300 text-sm hover:text-sky-300 transition-colors">${c.nombre}</span>
         </div>
       </td>
       <td class="px-6 py-4">
@@ -277,11 +281,11 @@ function renderTabla() {
   document.getElementById('tabla-capitulos').innerHTML = filas;
 
   document.getElementById('lista-capitulos').innerHTML = capitulos.map((c, i) => `
-    <div class="p-4 bar-row-card mx-3 my-2">
+    <div class="p-4 bar-row-card mx-3 my-2 cursor-pointer hover:bg-white/[0.02] transition-colors rounded-xl" onclick="abrirDetalleCapitulo(${i})">
       <div class="flex justify-between items-start mb-2">
         <div class="flex items-center gap-2">
           <span class="w-6 h-6 rounded-md bg-sky-400/15 text-xs font-bold text-sky-300 flex items-center justify-center">${i + 1}</span>
-          <span class="font-medium text-slate-300 text-sm">${c.nombre}</span>
+          <span class="font-medium text-slate-300 text-sm hover:text-sky-300">${c.nombre}</span>
         </div>
         <span class="text-sm font-bold text-sky-200">${c.progreso}%</span>
       </div>
@@ -329,8 +333,9 @@ function cambiarVista(vistaId) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('activo'));
 
   const vista = document.getElementById('vista-' + vistaId);
-  document.querySelector(`[data-vista="${vistaId}"]`).classList.add('activo');
-  vista.classList.add('activa');
+  const navBtn = document.querySelector(`[data-vista="${vistaId}"]`);
+  if (navBtn) navBtn.classList.add('activo');
+  if (vista) vista.classList.add('activa');
 
   resetBarras(vista);
   resetAnillo();
@@ -343,9 +348,93 @@ function cambiarVista(vistaId) {
   });
 }
 
-renderGraficoDashboard();
-renderTabla();
-bindDraggables();
+function abrirDetalleCapitulo(index) {
+  const cap = capitulos[index];
+  if (!cap) return;
+
+  // Ocultar vistas actuales y limpiar nav
+  document.querySelectorAll('.vista').forEach(v => v.classList.remove('activa'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('activo'));
+  
+  // Activar vista detalle
+  const vistaDetalle = document.getElementById('vista-capitulo-detalle');
+  if (vistaDetalle) {
+    vistaDetalle.classList.add('activa');
+    
+    // Inyectar info básica
+    document.getElementById('detalle-titulo-capitulo').textContent = cap.nombre;
+    document.getElementById('detalle-porcentaje-capitulo').textContent = `${cap.progreso}%`;
+    const barra = document.getElementById('detalle-barra-capitulo');
+    barra.style.width = '0%';
+    
+    // Animar barra
+    setTimeout(() => {
+      barra.style.width = `${cap.progreso}%`;
+      barra.className = `h-full bg-gradient-to-r rounded-full transition-all duration-1000 ease-out ${
+        cap.progreso >= 80 ? 'from-emerald-500 to-emerald-400' :
+        cap.progreso >= 50 ? 'from-sky-500 to-sky-400' :
+        'from-amber-500 to-amber-400'
+      }`;
+    }, 100);
+
+    // Inyectar historial
+    const contenedorHistorial = document.getElementById('contenedor-historial');
+    const mensajeSinHistorial = document.getElementById('mensaje-sin-historial');
+    
+    if (!cap.historial || cap.historial.length === 0) {
+      contenedorHistorial.innerHTML = '';
+      mensajeSinHistorial.classList.remove('hidden');
+    } else {
+      mensajeSinHistorial.classList.add('hidden');
+      
+      contenedorHistorial.innerHTML = cap.historial.map((h, i) => {
+        const date = new Date(h.fecha);
+        const fechaFormateada = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        return `
+          <div class="glass p-5 rounded-2xl border border-slate-700/50 flex gap-4">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-400/30 font-bold shrink-0">
+                ${cap.historial.length - i}
+              </div>
+              ${i !== cap.historial.length - 1 ? '<div class="w-px h-full bg-slate-700/50 my-2"></div>' : ''}
+            </div>
+            <div class="flex-1 pb-2">
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-semibold text-slate-400 bg-slate-800/50 px-2.5 py-1 rounded-lg border border-slate-700/50">${fechaFormateada}</span>
+                <span class="text-xs font-bold text-sky-400 bg-sky-500/10 px-2 py-1 rounded-lg">
+                  ${h.progresoAnterior}% &rarr; ${h.progresoNuevo}%
+                </span>
+              </div>
+              <p class="text-slate-200 text-sm leading-relaxed">${h.descripcion || 'Sin descripción'}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+}
+
+// Event listener para volver al Pin 3
+const btnVolverDesglose = document.getElementById('btn-volver-desglose');
+if (btnVolverDesglose) {
+  btnVolverDesglose.addEventListener('click', () => {
+    cambiarVista('pin3');
+  });
+}
+
+async function initApp() {
+  await fetchCapitulos();
+  AVANCE_GLOBAL = calcularAvanceGlobal();
+  renderGraficoDashboard();
+  renderTabla();
+  bindDraggables();
+  
+  if (typeof setFechaActual === 'function') {
+    setFechaActual();
+  }
+}
+
+initApp();
 
 // Mostrar fecha actual en el header (visibilidad previa se perdió tras refactor)
 function setFechaActual() {
@@ -475,49 +564,81 @@ if (selectCapitulo && containerNuevoCapitulo) {
 if (formAgregarDato) {
   poblarSelectCapitulos();
 
-  formAgregarDato.addEventListener('submit', (e) => {
+  formAgregarDato.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const valorSeleccionado = selectCapitulo.value;
     const progresoIngresado = parseFloat(document.getElementById('input-progreso').value);
+    const descripcionIngresada = document.getElementById('input-descripcion').value.trim();
+    const fechaActual = new Date().toISOString();
     
-    if (valorSeleccionado === 'nuevo') {
-      const nombreNuevo = inputNuevoCapitulo.value.trim();
-      if (nombreNuevo) {
-        capitulos.push({ nombre: nombreNuevo, progreso: progresoIngresado });
+    try {
+      if (valorSeleccionado === 'nuevo') {
+        const nombreNuevo = inputNuevoCapitulo.value.trim();
+        if (nombreNuevo) {
+          await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nombre: nombreNuevo,
+              progreso: progresoIngresado,
+              historial: [{
+                fecha: fechaActual,
+                descripcion: descripcionIngresada,
+                progresoAnterior: 0,
+                progresoNuevo: progresoIngresado
+              }]
+            })
+          });
+        }
+      } else {
+        const index = parseInt(valorSeleccionado);
+        if (!isNaN(index) && capitulos[index]) {
+          const capId = capitulos[index].id;
+          const progresoViejo = capitulos[index].progreso;
+          
+          await fetch(`${API_URL}/${capId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              progreso: progresoIngresado,
+              nuevoHistorial: {
+                fecha: fechaActual,
+                descripcion: descripcionIngresada,
+                progresoAnterior: progresoViejo,
+                progresoNuevo: progresoIngresado
+              }
+            })
+          });
+        }
       }
-    } else {
-      const index = parseInt(valorSeleccionado);
-      if (!isNaN(index) && capitulos[index]) {
-        capitulos[index].progreso = progresoIngresado;
-      }
-    }
-    
-    // Guardar, recalcular global y re-renderizar
-    guardarCapitulos();
-    AVANCE_GLOBAL = calcularAvanceGlobal();
-    
-    // Actualizar select y vistas
-    poblarSelectCapitulos();
-    renderGraficoDashboard();
-    renderTabla();
-    
-    // Ocultar input nuevo capítulo
-    containerNuevoCapitulo.classList.add('hidden');
-    inputNuevoCapitulo.removeAttribute('required');
+      
+      // Recargar datos y re-renderizar todo
+      await initApp();
+      
+      // Actualizar select
+      poblarSelectCapitulos();
+      
+      // Ocultar input nuevo capítulo
+      containerNuevoCapitulo.classList.add('hidden');
+      inputNuevoCapitulo.removeAttribute('required');
 
-    if (formSuccessMessage) {
-      formSuccessMessage.classList.remove('hidden');
-      setTimeout(() => {
-        formSuccessMessage.classList.add('hidden');
-      }, 4000);
+      if (formSuccessMessage) {
+        formSuccessMessage.classList.remove('hidden');
+        setTimeout(() => {
+          formSuccessMessage.classList.add('hidden');
+        }, 4000);
+      }
+      formAgregarDato.reset();
+    } catch (err) {
+      console.error('Error al guardar datos:', err);
+      alert('Hubo un error al guardar los datos.');
     }
-    formAgregarDato.reset();
   });
 }
 
 if (formEliminarDato) {
-  formEliminarDato.addEventListener('submit', (e) => {
+  formEliminarDato.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const indexStr = selectCapituloEliminar.value;
@@ -525,23 +646,28 @@ if (formEliminarDato) {
     
     const index = parseInt(indexStr);
     if (!isNaN(index) && capitulos[index]) {
-      // Eliminar el capítulo
-      capitulos.splice(index, 1);
-      
-      // Guardar, recalcular global y re-renderizar
-      guardarCapitulos();
-      AVANCE_GLOBAL = calcularAvanceGlobal();
-      
-      // Actualizar select y vistas
-      poblarSelectCapitulos();
-      renderGraficoDashboard();
-      renderTabla();
-      
-      if (formDeleteMessage) {
-        formDeleteMessage.classList.remove('hidden');
-        setTimeout(() => {
-          formDeleteMessage.classList.add('hidden');
-        }, 4000);
+      try {
+        const capId = capitulos[index].id;
+        
+        await fetch(`${API_URL}/${capId}`, {
+          method: 'DELETE'
+        });
+        
+        // Recargar datos y re-renderizar todo
+        await initApp();
+        
+        // Actualizar select
+        poblarSelectCapitulos();
+        
+        if (formDeleteMessage) {
+          formDeleteMessage.classList.remove('hidden');
+          setTimeout(() => {
+            formDeleteMessage.classList.add('hidden');
+          }, 4000);
+        }
+      } catch (err) {
+        console.error('Error al eliminar capítulo:', err);
+        alert('Hubo un error al eliminar el capítulo.');
       }
     }
   });

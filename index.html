@@ -135,7 +135,7 @@
                 <span class="text-xs text-slate-500">Reproducción en bucle</span>
               </div>
               <div class="dashboard-video-wrap rounded-3xl overflow-hidden border border-slate-700/50 bg-slate-950/70">
-                <video id="obra-video" class="dashboard-video w-full h-full" controls preload="metadata" loop playsinline>
+                <video id="obra-video" class="dashboard-video w-full h-full" controls preload="metadata" loop playsinline autoplay muted>
                   <source src="assets/Videos/las_delicias_semana_13_20_jun_compressed.mp4" type="video/mp4">
                   Tu navegador no soporta la reproducción de video.
                 </video>
@@ -412,6 +412,44 @@
             </form>
           </div>
 
+        </div>
+      </section>
+      <!-- Vista de Detalle de Capítulo (Historial) -->
+      <section id="vista-capitulo-detalle" class="vista">
+        <header class="mb-8">
+          <button id="btn-volver-desglose" class="mb-4 inline-flex items-center gap-2 text-sm text-sky-400 hover:text-sky-300 transition-colors bg-sky-500/10 px-3 py-1.5 rounded-xl border border-sky-400/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Volver a Desglose
+          </button>
+          
+          <h2 id="detalle-titulo-capitulo" class="text-3xl font-bold text-slate-100">Nombre del Capítulo</h2>
+          
+          <div class="mt-4 max-w-xl">
+            <div class="flex justify-between text-sm mb-1.5">
+              <span class="text-slate-400 font-medium">Progreso Actual</span>
+              <span id="detalle-porcentaje-capitulo" class="text-sky-400 font-bold">0%</span>
+            </div>
+            <div class="h-3 w-full bg-slate-800/50 rounded-full overflow-hidden border border-slate-700/50">
+              <div id="detalle-barra-capitulo" class="h-full bg-gradient-to-r from-sky-500 to-sky-400 rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Historial / Bitácora -->
+        <div class="max-w-3xl">
+          <h3 class="text-xl font-bold text-slate-100 mb-6 flex items-center gap-2">
+            <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Bitácora de Actividades
+          </h3>
+          
+          <div id="contenedor-historial" class="space-y-4">
+            <!-- Las tarjetas de historial se inyectarán aquí -->
+          </div>
+          
+          <div id="mensaje-sin-historial" class="hidden text-center py-10 px-4 glass rounded-2xl border-dashed border-2 border-slate-700/50">
+            <svg class="w-12 h-12 mx-auto text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            <p class="text-slate-400 font-medium">Aún no hay actividades registradas en este capítulo.</p>
+          </div>
         </div>
       </section>
 

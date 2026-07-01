@@ -11,22 +11,30 @@ app.use(express.json());
 
 // Middleware para inicializar DB de forma lazy (solo la primera vez)
 let dbInitialized = false;
+let dbInitPromise = null;
+
 app.use(async (req, res, next) => {
   if (!dbInitialized) {
-    try {
-      await db.initDB();
-      dbInitialized = true;
-    } catch (err) {
-      console.error('Error inicializando BD:', err);
+    if (!dbInitPromise) {
+      dbInitPromise = db.initDB()
+        .then(() => { dbInitialized = true; })
+        .catch(err => console.error('Error inicializando BD:', err));
     }
+    await dbInitPromise;
   }
   next();
 });
 
 // --- API ROUTES ---
+const router = express.Router();
+
+// GET: Prueba de conexión
+router.get('/test', (req, res) => {
+  res.json({ status: 'ok', dbInitialized });
+});
 
 // GET: Obtener todos los capítulos con su historial
-app.get('/api/capitulos', async (req, res) => {
+router.get('/capitulos', async (req, res) => {
   try {
     const capsResult = await db.query('SELECT * FROM capitulos ORDER BY orden ASC');
     const histResult = await db.query('SELECT * FROM historial ORDER BY fecha DESC');
@@ -45,7 +53,7 @@ app.get('/api/capitulos', async (req, res) => {
 });
 
 // POST: Crear un nuevo capítulo
-app.post('/api/capitulos', async (req, res) => {
+router.post('/capitulos', async (req, res) => {
   const { nombre, progreso, historial } = req.body;
   
   try {
@@ -77,7 +85,7 @@ app.post('/api/capitulos', async (req, res) => {
 });
 
 // PUT: Actualizar un capítulo y agregar historial
-app.put('/api/capitulos/:id', async (req, res) => {
+router.put('/capitulos/:id', async (req, res) => {
   const { id } = req.params;
   const { progreso, nuevoHistorial } = req.body;
   
@@ -99,7 +107,7 @@ app.put('/api/capitulos/:id', async (req, res) => {
 });
 
 // DELETE: Eliminar un capítulo
-app.delete('/api/capitulos/:id', async (req, res) => {
+router.delete('/capitulos/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
@@ -112,5 +120,9 @@ app.delete('/api/capitulos/:id', async (req, res) => {
 });
 
 // Vercel maneja el frontend, así que quitamos el fallback manual de index.html
+
+// Montar router en diferentes prefijos por si Vercel altera el req.url
+app.use('/api', router);
+app.use('/', router);
 
 module.exports = app;

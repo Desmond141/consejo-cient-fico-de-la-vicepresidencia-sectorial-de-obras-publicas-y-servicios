@@ -55,8 +55,8 @@ function arcoDonut(cx, cy, rExt, rInt, inicio, fin) {
 }
 
 function renderBarras() {
-  document.getElementById('grafico-dashboard').innerHTML = capitulos.map(c => `
-    <div class="bar-chart-item bar-row-card">
+  document.getElementById('grafico-dashboard').innerHTML = capitulos.map((c, i) => `
+    <div class="bar-chart-item bar-row-card cursor-pointer hover:bg-white/[0.02] transition-colors rounded-xl p-3 -mx-3" onclick="abrirDetalleCapitulo(${i})">
       <div class="flex justify-between items-center mb-2">
         <span class="text-xs font-medium text-slate-300 truncate pr-3">${c.nombre}</span>
         <span class="text-xs font-bold text-sky-200 flex-shrink-0">${c.progreso}%</span>
@@ -83,13 +83,13 @@ function renderPasteles() {
   });
 
   const paths = slices.map((s, i) =>
-    `<path class="pie-slice" d="${arcoDonut(cx, cy, rExt, rInt, s.inicio, s.fin)}" fill="${s.color}" stroke="rgba(17,24,39,0.55)" stroke-width="1.5" opacity="0" data-delay="${i}">
+    `<path class="pie-slice cursor-pointer" onclick="abrirDetalleCapitulo(${i})" d="${arcoDonut(cx, cy, rExt, rInt, s.inicio, s.fin)}" fill="${s.color}" stroke="rgba(17,24,39,0.55)" stroke-width="1.5" opacity="0" data-delay="${i}">
       <title>${s.nombre}: ${s.progreso}%</title>
     </path>`
   ).join('');
 
-  const leyenda = slices.map(s => `
-    <div class="pie-leyenda-item" title="${s.nombre}: ${s.progreso}%">
+  const leyenda = slices.map((s, i) => `
+    <div class="pie-leyenda-item cursor-pointer hover:bg-white/[0.05] rounded-md p-1 -m-1 transition-colors" onclick="abrirDetalleCapitulo(${i})" title="${s.nombre}: ${s.progreso}%">
       <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${s.color}"></span>
       <span class="text-slate-400">${s.nombre}</span>
       <span class="text-sky-200 font-semibold flex-shrink-0">${s.progreso}%</span>
@@ -102,7 +102,7 @@ function renderPasteles() {
         <svg viewBox="0 0 200 200" role="img" aria-label="Gráfico de pastel por capítulo">
           ${paths}
           <circle cx="${cx}" cy="${cy}" r="${rInt - 8}" fill="rgba(30,50,75,0.6)"/>
-          <text x="${cx}" y="${cy - 5}" text-anchor="middle" fill="#e2e8f0" font-size="22" font-weight="700">7</text>
+          <text id="texto-pie-total" x="${cx}" y="${cy - 5}" text-anchor="middle" fill="#e2e8f0" font-size="22" font-weight="700">${capitulos.length}</text>
           <text x="${cx}" y="${cy + 16}" text-anchor="middle" fill="#94a3b8" font-size="10">capítulos</text>
         </svg>
       </div>
@@ -422,9 +422,43 @@ if (btnVolverDesglose) {
   });
 }
 
+function actualizarContadoresDinamicos() {
+  const total = capitulos.length;
+  const completados = capitulos.filter(c => c.progreso >= 100).length;
+  const enProgreso = total - completados;
+
+  const elTotal = document.getElementById('kpi-capitulos');
+  if (elTotal) elTotal.textContent = total;
+
+  const elCompletados = document.getElementById('kpi-completados');
+  if (elCompletados) elCompletados.textContent = completados;
+
+  const elEnProgreso = document.getElementById('kpi-en-progreso');
+  if (elEnProgreso) elEnProgreso.textContent = enProgreso;
+
+  const elAvanceGlobal = document.getElementById('kpi-avance-global');
+  if (elAvanceGlobal) elAvanceGlobal.textContent = AVANCE_GLOBAL;
+
+  const elAnilloGlobal = document.getElementById('texto-anillo-global');
+  if (elAnilloGlobal) elAnilloGlobal.textContent = AVANCE_GLOBAL;
+
+  const elPin2Global = document.getElementById('texto-pin2-global');
+  if (elPin2Global) elPin2Global.textContent = AVANCE_GLOBAL;
+
+  const elCantidadPartidas = document.getElementById('texto-cantidad-partidas');
+  if (elCantidadPartidas) elCantidadPartidas.textContent = `${total} partidas de obra`;
+  
+  const elPieTotal = document.getElementById('texto-pie-total');
+  if (elPieTotal) elPieTotal.textContent = total;
+
+  const globalBars = document.querySelectorAll('#vista-dashboard .glass .barra-progreso, #vista-pin2 .barra-progreso');
+  globalBars.forEach(b => b.dataset.progreso = AVANCE_GLOBAL);
+}
+
 async function initApp() {
   await fetchCapitulos();
   AVANCE_GLOBAL = calcularAvanceGlobal();
+  actualizarContadoresDinamicos();
   renderGraficoDashboard();
   renderTabla();
   bindDraggables();

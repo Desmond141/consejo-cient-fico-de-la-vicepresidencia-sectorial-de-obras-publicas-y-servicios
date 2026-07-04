@@ -163,24 +163,24 @@
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div class="glass rounded-2xl p-4 animate-in delay-1">
             <p class="text-[11px] font-medium uppercase tracking-wider text-slate-500 mb-2">Avance Global</p>
-            <p class="text-2xl font-bold text-slate-100">60<span class="text-sm text-sky-400">%</span></p>
+            <p class="text-2xl font-bold text-slate-100"><span id="kpi-avance-global">0</span><span class="text-sm text-sky-400">%</span></p>
             <div class="mt-2 h-1.5 bar-track rounded-full overflow-hidden">
               <div class="h-full barra-progreso" data-progreso="60" style="width:0%"></div>
             </div>
           </div>
           <div class="glass rounded-2xl p-4 animate-in delay-2">
             <p class="text-[11px] font-medium uppercase tracking-wider text-slate-500 mb-2">Capítulos</p>
-            <p class="text-2xl font-bold text-slate-100">7</p>
+            <p id="kpi-capitulos" class="text-2xl font-bold text-slate-100">0</p>
             <p class="text-xs text-slate-500 mt-1">Partidas activas</p>
           </div>
           <div class="glass rounded-2xl p-4 animate-in delay-3">
             <p class="text-[11px] font-medium uppercase tracking-wider text-slate-500 mb-2">Completados</p>
-            <p class="text-2xl font-bold text-sky-300">2</p>
+            <p id="kpi-completados" class="text-2xl font-bold text-sky-300">0</p>
             <p class="text-xs text-slate-500 mt-1">Al 100%</p>
           </div>
           <div class="glass rounded-2xl p-4 animate-in delay-4">
             <p class="text-[11px] font-medium uppercase tracking-wider text-slate-500 mb-2">En progreso</p>
-            <p class="text-2xl font-bold text-sky-400">5</p>
+            <p id="kpi-en-progreso" class="text-2xl font-bold text-sky-400">0</p>
             <p class="text-xs text-slate-500 mt-1">Parcialmente avanzados</p>
           </div>
         </div>
@@ -207,7 +207,7 @@
                   </defs>
                 </svg>
                 <div class="absolute inset-0 flex flex-col items-center justify-center">
-                  <span class="text-5xl font-extrabold text-slate-100 leading-none">60</span>
+                  <span id="texto-anillo-global" class="text-5xl font-extrabold text-slate-100 leading-none">0</span>
                   <span class="text-lg font-semibold text-sky-400">%</span>
                 </div>
               </div>
@@ -223,7 +223,7 @@
             <div class="flex items-center justify-between mb-6 gap-3 min-w-0">
               <div class="min-w-0">
                 <h3 class="text-base font-semibold text-white">Progreso por Capítulo</h3>
-                <p class="text-xs text-slate-500 mt-0.5">7 partidas de obra</p>
+                <p id="texto-cantidad-partidas" class="text-xs text-slate-500 mt-0.5">0 partidas de obra</p>
               </div>
               <div class="flex gap-1.5 flex-shrink-0">
                 <button type="button" id="btn-barras" class="chart-toggle glass rounded-lg px-3 py-1.5 text-xs text-slate-400 activo" aria-pressed="true">Barras</button>
@@ -293,7 +293,7 @@
             <div class="relative">
               <span class="inline-block text-[10px] font-bold uppercase tracking-widest text-sky-400 bg-sky-500/10 border border-sky-400/20 px-3 py-1 rounded-full mb-6">Pin 2</span>
               <p class="text-xs font-semibold text-slate-500 uppercase tracking-[0.25em] mb-6">Avance Global de la Obra</p>
-              <p class="text-7xl sm:text-8xl font-extrabold bg-gradient-to-r from-sky-300 via-sky-400 to-slate-400 bg-clip-text text-transparent leading-none mb-8">60<span class="text-4xl sm:text-5xl">%</span></p>
+              <p class="text-7xl sm:text-8xl font-extrabold bg-gradient-to-r from-sky-300 via-sky-400 to-slate-400 bg-clip-text text-transparent leading-none mb-8"><span id="texto-pin2-global">0</span><span class="text-4xl sm:text-5xl">%</span></p>
               <div class="w-full bar-track rounded-full h-3 sm:h-4 overflow-hidden mx-auto max-w-md">
                 <div class="barra-progreso h-full" data-progreso="60" style="width: 0%"></div>
               </div>

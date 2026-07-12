@@ -514,6 +514,7 @@ async function initApp() {
   renderProjectCards();
   renderUserCards();
   poblarSelectProyectosUsuario();
+  poblarSelectProyectosEliminar();
   
   if (typeof setFechaActual === 'function') {
     setFechaActual();
@@ -610,7 +611,10 @@ const selectCapituloEliminar = document.getElementById('select-capitulo-eliminar
 const formDeleteMessage = document.getElementById('form-delete-message');
 const formAgregarProyecto = document.getElementById('form-agregar-proyecto');
 const formCrearUsuario = document.getElementById('form-crear-usuario');
+const formEliminarProyecto = document.getElementById('form-eliminar-proyecto');
 const selectUsuarioProyecto = document.getElementById('select-usuario-proyecto');
+const selectEliminarProyecto = document.getElementById('select-eliminar-proyecto');
+const deleteProjectMessage = document.getElementById('delete-project-message');
 
 function poblarSelectCapitulos() {
   if (selectCapitulo) {
@@ -664,6 +668,26 @@ function poblarSelectProyectosUsuario() {
     option.value = project.id;
     option.textContent = project.nombre;
     selectUsuarioProyecto.appendChild(option);
+  });
+}
+
+function poblarSelectProyectosEliminar() {
+  if (!selectEliminarProyecto) return;
+  syncProjectsFromDataLayer();
+  selectEliminarProyecto.innerHTML = '';
+  if (!proyectos.length) {
+    const emptyOption = document.createElement('option');
+    emptyOption.value = '';
+    emptyOption.textContent = 'No hay proyectos disponibles';
+    selectEliminarProyecto.appendChild(emptyOption);
+    return;
+  }
+
+  proyectos.forEach(project => {
+    const option = document.createElement('option');
+    option.value = project.id;
+    option.textContent = project.nombre;
+    selectEliminarProyecto.appendChild(option);
   });
 }
 
@@ -760,6 +784,7 @@ if (formAgregarProyecto) {
     syncProjectsFromDataLayer();
     renderProjectCards();
     poblarSelectProyectosUsuario();
+    poblarSelectProyectosEliminar();
     formAgregarProyecto.reset();
     alert(`Proyecto creado: ${created.nombre}`);
   });
@@ -769,6 +794,13 @@ if (formCrearUsuario) {
   formCrearUsuario.addEventListener('submit', (e) => {
     e.preventDefault();
     const session = window.Auth && typeof window.Auth.getSession === 'function' ? window.Auth.getSession() : null;
+    const isGingerlin = window.DashboardData && typeof window.DashboardData.isGingerlinSession === 'function' ? window.DashboardData.isGingerlinSession(session) : false;
+
+    if (!isGingerlin) {
+      alert('Solo Gingerlin Molina puede crear y gestionar usuarios.');
+      return;
+    }
+
     const selectedProject = proyectos.find(project => project.id === selectUsuarioProyecto.value);
     const userData = {
       nombre: document.getElementById('input-usuario-nombre').value.trim(),
@@ -788,6 +820,26 @@ if (formCrearUsuario) {
     formCrearUsuario.reset();
     poblarSelectProyectosUsuario();
     alert(`Usuario creado: ${userData.username}`);
+  });
+}
+
+if (formEliminarProyecto) {
+  formEliminarProyecto.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const projectId = selectEliminarProyecto.value;
+    if (!projectId) return;
+
+    window.DashboardData.deleteProject(projectId);
+    syncProjectsFromDataLayer();
+    renderProjectCards();
+    poblarSelectProyectosUsuario();
+    poblarSelectProyectosEliminar();
+
+    if (deleteProjectMessage) {
+      deleteProjectMessage.textContent = 'Proyecto eliminado correctamente.';
+      deleteProjectMessage.classList.remove('hidden');
+      setTimeout(() => deleteProjectMessage.classList.add('hidden'), 3000);
+    }
   });
 }
 

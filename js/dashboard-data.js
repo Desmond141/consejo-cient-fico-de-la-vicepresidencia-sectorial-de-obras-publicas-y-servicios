@@ -100,21 +100,33 @@
     return found ? found.nombre : '';
   }
 
-  function canManageUsers(session) {
+  function deleteProject(projectId) {
+    const projects = getProjects().filter(project => project.id !== projectId);
+    saveProjects(projects);
+    return projects;
+  }
+
+  function isGingerlinSession(session) {
     if (!session) return false;
     const normalizedName = (session.nombre || '').trim().toLowerCase();
     const normalizedUsername = (session.username || '').trim().toLowerCase();
-    return session.rol === 'Superadmin' || normalizedName === 'gingerlin molina' || normalizedUsername === 'gingerlin.m';
+    return normalizedName === 'gingerlin molina' || normalizedUsername === 'gingerlin.m';
+  }
+
+  function canManageUsers(session) {
+    return isGingerlinSession(session);
   }
 
   window.DashboardData = {
     getProjects,
     saveProjects,
     createProject,
+    deleteProject,
     getUsers,
     saveUsers,
     createUser,
     getProjectNameById,
-    canManageUsers
+    canManageUsers,
+    isGingerlinSession
   };
 })();

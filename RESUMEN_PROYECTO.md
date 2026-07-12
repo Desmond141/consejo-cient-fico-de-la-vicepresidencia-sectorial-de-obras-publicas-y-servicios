@@ -17,7 +17,7 @@ La aplicación está dividida en dos partes principales, preparadas para ser des
 ### A. Sistema de Autenticación y Vistas (Pública vs. Privada)
 *   La aplicación maneja las sesiones en el navegador usando `localStorage`.
 *   **Vista Pública:** Cualquier persona que entre al Dashboard (en `index.html`) verá el estado de los proyectos y los gráficos de progreso, pero solo en modo lectura.
-*   **Vista Privada (Login):** Si accedes a `login.html` e inicias sesión como administrador, el sistema guarda tu sesión. Al regresar al dashboard, el sistema detecta que eres "Superadmin" y habilita controles ocultos (como botones para agregar nuevos capítulos, editar progreso o eliminar registros).
+*   **Vista Privada (Login):** Si accedes a `login.html` e inicias sesión como administrador, el sistema guarda tu sesión. Al regresar al dashboard, el sistema detecta si eres "Superadmin" o si tienes permisos de gestión especiales como Gingerlin Molina, y habilita controles ocultos para administrar contenidos.
 
 ### B. Gestión de Capítulos y Progreso (API REST)
 El backend en la carpeta `/api` proporciona rutas para comunicarse con la base de datos:
@@ -27,6 +27,12 @@ El backend en la carpeta `/api` proporciona rutas para comunicarse con la base d
 ### C. Visualización de Datos (Dashboard)
 *   En `js/app.js`, el frontend toma los datos de la API y calcula el **Avance Global** (promediando los porcentajes).
 *   Se encarga de pintar la información en pantalla utilizando gráficos nativos hechos con HTML y SVG. Tiene la capacidad de alternar entre un estilo de gráfico de **barras** y un gráfico de **pastel/dona**, asignando colores dinámicamente según el nivel de progreso (por ejemplo, colores más brillantes para obras completadas al 100%).
+
+### D. Gestión de Proyectos y Usuarios
+*   Se incorporó una capa ligera de datos en `js/dashboard-data.js` para administrar proyectos y usuarios sin depender exclusivamente de la lógica del archivo principal.
+*   Los superadmins y Gingerlin Molina pueden crear proyectos desde una vista específica.
+*   También pueden registrar usuarios con rol **Admin** o **Usuario** y asignarles un proyecto.
+*   La información se conserva en `localStorage` como base inicial para futuras integraciones con backend real.
 
 ## Resumen
 Hemos construido un Dashboard interactivo, con un backend robusto conectado a base de datos PostgreSQL, que permite visualizar de manera pública el progreso de las obras, y administrarlo de forma privada y segura mediante autenticación, llevando un registro histórico inmutable de cada avance.

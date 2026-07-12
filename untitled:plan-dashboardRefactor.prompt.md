@@ -1,0 +1,3 @@
+- Reorganizar la lógica del frontend en capas simples: datos, vistas y componentes.
+- Añadir gestión de proyectos y usuarios con acceso restringido a superadmins y a Gingerlin Molina.
+- Actualizar documentación del proyecto.

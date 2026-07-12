@@ -1,5 +1,6 @@
 let capitulos = [];
 let AVANCE_GLOBAL = 0;
+let proyectos = [];
 
 // URL base de la API (asume mismo host y puerto)
 const API_URL = '/api/capitulos';
@@ -455,13 +456,64 @@ function actualizarContadoresDinamicos() {
   globalBars.forEach(b => b.dataset.progreso = AVANCE_GLOBAL);
 }
 
+function syncProjectsFromDataLayer() {
+  if (window.DashboardData && typeof window.DashboardData.getProjects === 'function') {
+    proyectos = window.DashboardData.getProjects();
+  }
+}
+
+function renderProjectCards() {
+  const projectList = document.getElementById('project-list');
+  if (!projectList) return;
+
+  const cards = proyectos.map(project => `
+    <div class="rounded-2xl border border-slate-700/60 bg-slate-900/50 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-sm font-semibold text-slate-100">${project.nombre}</h4>
+        <span class="text-xs px-2 py-1 rounded-full ${project.progreso >= 100 ? 'bg-emerald-500/15 text-emerald-300' : 'bg-sky-500/15 text-sky-300'}">${project.progreso}%</span>
+      </div>
+      <p class="text-sm text-slate-400 mb-3">${project.descripcion || 'Sin descripción'}</p>
+      <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+        <div class="h-full rounded-full" style="width:${Math.min(100, Math.max(0, project.progreso))}%; background: linear-gradient(90deg, #38bdf8, #0ea5e9);"></div>
+      </div>
+      <p class="text-[11px] text-slate-500 mt-3">Creado por ${project.creadoPor || 'Superadmin'}</p>
+    </div>
+  `).join('');
+
+  projectList.innerHTML = cards || '<p class="text-sm text-slate-500">No hay proyectos registrados todavía.</p>';
+}
+
+function renderUserCards() {
+  const userList = document.getElementById('user-list');
+  if (!userList) return;
+
+  const users = window.DashboardData && typeof window.DashboardData.getUsers === 'function' ? window.DashboardData.getUsers() : [];
+  const cards = users.map(user => `
+    <div class="rounded-2xl border border-violet-700/40 bg-slate-900/50 p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-sm font-semibold text-slate-100">${user.nombre}</h4>
+        <span class="text-xs px-2 py-1 rounded-full bg-violet-500/15 text-violet-300">${user.rol || 'Usuario'}</span>
+      </div>
+      <p class="text-sm text-slate-400">${user.email}</p>
+      <p class="text-sm text-slate-400">Usuario: ${user.username}</p>
+      <p class="text-[11px] text-slate-500 mt-3">${user.proyectoNombre ? 'Proyecto: ' + user.proyectoNombre : 'Sin proyecto asignado'}</p>
+    </div>
+  `).join('');
+
+  userList.innerHTML = cards || '<p class="text-sm text-slate-500">No hay usuarios registrados todavía.</p>';
+}
+
 async function initApp() {
   await fetchCapitulos();
+  syncProjectsFromDataLayer();
   AVANCE_GLOBAL = calcularAvanceGlobal();
   actualizarContadoresDinamicos();
   renderGraficoDashboard();
   renderTabla();
   bindDraggables();
+  renderProjectCards();
+  renderUserCards();
+  poblarSelectProyectosUsuario();
   
   if (typeof setFechaActual === 'function') {
     setFechaActual();
@@ -556,6 +608,9 @@ const inputNuevoCapitulo = document.getElementById('input-nuevo-capitulo');
 const formEliminarDato = document.getElementById('form-eliminar-dato');
 const selectCapituloEliminar = document.getElementById('select-capitulo-eliminar');
 const formDeleteMessage = document.getElementById('form-delete-message');
+const formAgregarProyecto = document.getElementById('form-agregar-proyecto');
+const formCrearUsuario = document.getElementById('form-crear-usuario');
+const selectUsuarioProyecto = document.getElementById('select-usuario-proyecto');
 
 function poblarSelectCapitulos() {
   if (selectCapitulo) {
@@ -592,6 +647,23 @@ if (selectCapitulo && containerNuevoCapitulo) {
       containerNuevoCapitulo.classList.add('hidden');
       inputNuevoCapitulo.removeAttribute('required');
     }
+  });
+}
+
+function poblarSelectProyectosUsuario() {
+  if (!selectUsuarioProyecto) return;
+  syncProjectsFromDataLayer();
+  selectUsuarioProyecto.innerHTML = '';
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Sin proyecto asignado';
+  selectUsuarioProyecto.appendChild(defaultOption);
+
+  proyectos.forEach(project => {
+    const option = document.createElement('option');
+    option.value = project.id;
+    option.textContent = project.nombre;
+    selectUsuarioProyecto.appendChild(option);
   });
 }
 
@@ -668,6 +740,54 @@ if (formAgregarDato) {
       console.error('Error al guardar datos:', err);
       alert('Hubo un error al guardar los datos.');
     }
+  });
+}
+
+if (formAgregarProyecto) {
+  formAgregarProyecto.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const session = window.Auth && typeof window.Auth.getSession === 'function' ? window.Auth.getSession() : null;
+    const projectData = {
+      nombre: document.getElementById('input-proyecto-nombre').value.trim(),
+      descripcion: document.getElementById('input-proyecto-descripcion').value.trim(),
+      progreso: Number(document.getElementById('input-proyecto-progreso').value || 0),
+      creadoPor: session && session.nombre ? session.nombre : 'Superadmin'
+    };
+
+    if (!projectData.nombre || !projectData.descripcion) return;
+
+    const created = window.DashboardData.createProject(projectData);
+    syncProjectsFromDataLayer();
+    renderProjectCards();
+    poblarSelectProyectosUsuario();
+    formAgregarProyecto.reset();
+    alert(`Proyecto creado: ${created.nombre}`);
+  });
+}
+
+if (formCrearUsuario) {
+  formCrearUsuario.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const session = window.Auth && typeof window.Auth.getSession === 'function' ? window.Auth.getSession() : null;
+    const selectedProject = proyectos.find(project => project.id === selectUsuarioProyecto.value);
+    const userData = {
+      nombre: document.getElementById('input-usuario-nombre').value.trim(),
+      username: document.getElementById('input-usuario-username').value.trim(),
+      email: document.getElementById('input-usuario-email').value.trim(),
+      password: document.getElementById('input-usuario-password').value,
+      rol: document.getElementById('select-usuario-rol').value,
+      proyectoId: selectedProject ? selectedProject.id : '',
+      proyectoNombre: selectedProject ? selectedProject.nombre : '',
+      creadoPor: session && session.nombre ? session.nombre : 'Superadmin'
+    };
+
+    if (!userData.nombre || !userData.username || !userData.email || !userData.password) return;
+
+    window.DashboardData.createUser(userData);
+    renderUserCards();
+    formCrearUsuario.reset();
+    poblarSelectProyectosUsuario();
+    alert(`Usuario creado: ${userData.username}`);
   });
 }
 

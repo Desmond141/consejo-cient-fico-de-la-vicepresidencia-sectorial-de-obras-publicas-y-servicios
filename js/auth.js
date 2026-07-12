@@ -14,6 +14,7 @@
     const session = {
       email: admin.email,
       nombre: admin.nombre,
+      username: admin.username,
       rol: admin.rol,
       loggedAt: Date.now()
     };
@@ -103,12 +104,17 @@
     const loggedInContainer = document.getElementById('logged-in-container');
     const btnAgregar = document.getElementById('btn-nav-agregar');
     const headerDesc = document.getElementById('header-description');
+    const btnAgregarProyecto = document.getElementById('btn-nav-agregar-proyecto');
+    const btnGestionUsuarios = document.getElementById('btn-nav-gestion-usuarios');
+    const canManageUsers = window.DashboardData && window.DashboardData.canManageUsers ? window.DashboardData.canManageUsers(session) : false;
 
     if (!session) {
       // Estado público (no logueado)
       if (loginLink) loginLink.classList.remove('hidden');
       if (loggedInContainer) loggedInContainer.classList.add('hidden');
       if (btnAgregar) btnAgregar.classList.add('hidden');
+      if (btnAgregarProyecto) btnAgregarProyecto.classList.add('hidden');
+      if (btnGestionUsuarios) btnGestionUsuarios.classList.add('hidden');
       if (headerDesc) headerDesc.textContent = 'Vista pública del estado del proyecto.';
     } else {
       // Estado logueado
@@ -120,9 +126,17 @@
       if (headerDesc) headerDesc.textContent = 'Sesión activa para administración.';
       renderLoggedUser();
 
-      // Habilitar opción de agregar dato si es superadmin
-      if (session.rol === 'Superadmin' && btnAgregar) {
+      // Habilitar opciones de administración si es superadmin o Gingerlin
+      if ((session.rol === 'Superadmin' || session.nombre === 'Gingerlin Molina' || session.username === 'Gingerlin.M') && btnAgregar) {
         btnAgregar.classList.remove('hidden');
+      }
+
+      if ((session.rol === 'Superadmin' || session.nombre === 'Gingerlin Molina' || session.username === 'Gingerlin.M') && btnAgregarProyecto) {
+        btnAgregarProyecto.classList.remove('hidden');
+      }
+
+      if (canManageUsers && btnGestionUsuarios) {
+        btnGestionUsuarios.classList.remove('hidden');
       }
     }
     hideAuthStatus();

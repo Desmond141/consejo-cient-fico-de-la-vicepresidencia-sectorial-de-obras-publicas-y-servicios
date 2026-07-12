@@ -44,7 +44,7 @@ Panel administrativo web diseñado para monitorear y visualizar el avance de la 
 
 ## Descripción General
 
-Este proyecto es un **panel administrativo estático (sin Backend/servidor)** que funciona completamente en el navegador. Su propósito principal es ofrecer a los superadministradores del Consejo Científico una herramienta visual para:
+Este proyecto es un **panel administrativo web** que combina una interfaz visual moderna con una base de gestión básica para proyectos, usuarios y avances de obra. Su propósito principal es ofrecer a los superadministradores del Consejo Científico una herramienta visual para:
 
 - **Consultar el avance global** del proyecto de obra (actualmente al 60%).
 - **Revisar el progreso individual** de cada uno de los 7 capítulos de la obra.
@@ -52,6 +52,9 @@ Este proyecto es un **panel administrativo estático (sin Backend/servidor)** qu
 - **Reproducir un video** de seguimiento semanal de la obra.
 - **Leer notas técnicas** relevantes sobre decisiones de diseño del proyecto.
 - **Controlar el acceso** mediante un sistema de login con usuarios predefinidos.
+- **Gestionar proyectos y usuarios** desde un panel reservado para superadmins y para la cuenta de Gingerlin Molina.
+- **Administrar proyectos** desde la vista especial de superadmins.
+- **Crear usuarios** con rol Admin o Usuario general, además de asignarles un proyecto.
 
 ---
 
@@ -62,7 +65,7 @@ Este proyecto es un **panel administrativo estático (sin Backend/servidor)** qu
 | **HTML5** | Estructura semántica de las páginas |
 | **Tailwind CSS (CDN)** | Clases utilitarias para layout, tipografía, colores y espaciado |
 | **CSS personalizado** (`css/styles.css`) | Efectos Glassmorphism, animaciones, fondo animado con orbes, estilos de login, barras de progreso, gráficos y scrollbar |
-| **JavaScript (Vanilla)** | Toda la lógica de la aplicación: autenticación, renderizado dinámico de gráficos, navegación por vistas, drag & drop y control de video |
+| **JavaScript (Vanilla)** | Toda la lógica de la aplicación: autenticación, renderizado dinámico de gráficos, navegación por vistas, drag & drop, control de video y gestión básica de proyectos y usuarios |
 | **SVG** | Gráfico de anillo (avance global) y gráfico de donut/pastel generados dinámicamente |
 | **Google Fonts** | Tipografía *Plus Jakarta Sans* para una apariencia moderna |
 | **localStorage** | Persistencia de sesión de usuario y datos de administradores en el navegador |
@@ -82,8 +85,9 @@ Dashboard/
 │   └── styles.css                      # Estilos personalizados (glassmorphism, animaciones, layout)
 │
 ├── js/
-│   ├── app.js                          # Lógica principal: gráficos, navegación, video, drag & drop
+│   ├── app.js                          # Lógica principal: gráficos, navegación, video, drag & drop y formularios de administración
 │   ├── auth.js                         # Sistema de autenticación y manejo de sesión
+│   ├── dashboard-data.js               # Capa ligera de datos para proyectos y usuarios
 │   └── data/
 │       ├── superadmins.js              # Módulo de gestión de superadministradores
 │       └── superadmins.local.js        # Credenciales locales (git-ignored, NO se sube al repositorio)
@@ -506,6 +510,15 @@ El dashboard utiliza una estética **dark mode premium** con las siguientes cara
 - **Scrollbar personalizado**: Barras de scroll delgadas, oscuras y semitransparentes que se integran con el diseño.
 
 ---
+
+## Gestión de Proyectos y Usuarios
+
+El panel incorpora una capa básica de administración para los usuarios con permisos elevados:
+
+- Los superadmins pueden acceder a la sección de "Agregar Proyecto" y a la gestión de usuarios.
+- La cuenta de Gingerlin Molina también cuenta con acceso a estas secciones.
+- Los usuarios pueden crearse con rol "Admin" o "Usuario" y asignárseles un proyecto específico.
+- La información se guarda en el almacenamiento local del navegador para mantener una base sencilla de trabajo en fase inicial.
 
 ## Notas de Seguridad
 

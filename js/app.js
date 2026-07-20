@@ -8,20 +8,36 @@ const SELECTED_PROJECT_KEY = 'obras_dashboard_selected_project';
 const API_URL = '/api/capitulos';
 
 async function fetchCapitulos() {
-  try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error('Error en API');
-    const data = await res.json();
-    capitulos = data;
-    // Asegurar que existan los historiales por si acaso
-    capitulos.forEach(cap => {
-      if (!cap.historial) cap.historial = [];
-    });
-  } catch (err) {
-    console.error('No se pudo cargar de la DB, usando fallback local.', err);
-    // Fallback temporal si la API falla
+  const project = getSelectedProject();
+  if (!project) {
     capitulos = [];
+    return;
   }
+
+  const storedChapters = window.DashboardData && typeof window.DashboardData.getProjectChapters === 'function'
+    ? window.DashboardData.getProjectChapters(project.id)
+    : [];
+
+  if (project.id === 'project-las-delicias' && (!Array.isArray(storedChapters) || storedChapters.length === 0)) {
+    try {
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error('Error en API');
+      const data = await res.json();
+      capitulos = Array.isArray(data) ? data : [];
+      if (window.DashboardData && typeof window.DashboardData.saveProjectChapters === 'function') {
+        window.DashboardData.saveProjectChapters(project.id, capitulos);
+      }
+    } catch (err) {
+      console.error('No se pudo cargar de la DB, usando fallback local.', err);
+      capitulos = Array.isArray(storedChapters) ? storedChapters : [];
+    }
+  } else {
+    capitulos = Array.isArray(storedChapters) ? storedChapters : [];
+  }
+
+  capitulos.forEach(cap => {
+    if (!cap.historial) cap.historial = [];
+  });
 }
 
 function calcularAvanceGlobal() {
@@ -64,14 +80,25 @@ function setSelectedProject(projectId) {
 function renderProjectContext() {
   const project = getSelectedProject();
   const title = document.querySelector('#vista-dashboard h2');
-  const description = document.getElementById('header-description');
 
   if (title && project) {
     title.textContent = project.nombre;
   }
-  if (description && project) {
-    description.textContent = `Proyecto seleccionado: ${project.nombre} — Código ${project.codigo}`;
-  }
+}
+
+async function loadProjectView() {
+  await fetchCapitulos();
+  AVANCE_GLOBAL = calcularAvanceGlobal();
+  actualizarContadoresDinamicos();
+  renderGraficoDashboard();
+  renderTabla();
+  bindDraggables();
+  renderProjectCards();
+  renderUserCards();
+  poblarSelectProyectosUsuario();
+  poblarSelectProyectosEliminar();
+  poblarProjectSwitcher();
+  renderProjectContext();
 }
 
 const CIRCUNFERENCIA = 2 * Math.PI * 52;
@@ -557,21 +584,8 @@ function renderUserCards() {
 }
 
 async function initApp() {
-  await fetchCapitulos();
   loadSelectedProjectId();
-  syncProjectsFromDataLayer();
-  AVANCE_GLOBAL = calcularAvanceGlobal();
-  actualizarContadoresDinamicos();
-  renderGraficoDashboard();
-  renderTabla();
-  bindDraggables();
-  renderProjectCards();
-  renderUserCards();
-  poblarSelectProyectosUsuario();
-  poblarSelectProyectosEliminar();
-  poblarProjectSwitcher();
-  renderProjectContext();
-  
+  await loadProjectView();
   if (typeof setFechaActual === 'function') {
     setFechaActual();
   }
@@ -728,12 +742,14 @@ function poblarSelectProyectosUsuario() {
 }
 
 function poblarProjectSwitcher() {
-  const selectProjectActual = document.getElementById('select-proyecto-actual');
   const switcherWrapper = document.getElementById('project-switcher-wrapper');
+  const button = document.getElementById('project-selector-btn');
+  const menu = document.getElementById('project-selector-menu');
+  const menuList = document.getElementById('project-selector-menu-list');
   const session = window.Auth && typeof window.Auth.getSession === 'function' ? window.Auth.getSession() : null;
   const canSwitchProject = window.DashboardData && typeof window.DashboardData.canManageProjects === 'function' ? window.DashboardData.canManageProjects(session) : false;
 
-  if (!selectProjectActual || !switcherWrapper) return;
+  if (!switcherWrapper || !button || !menu || !menuList) return;
   if (!canSwitchProject) {
     switcherWrapper.classList.add('hidden');
     return;
@@ -741,25 +757,39 @@ function poblarProjectSwitcher() {
 
   switcherWrapper.classList.remove('hidden');
   syncProjectsFromDataLayer();
-  selectProjectActual.innerHTML = '';
+  menuList.innerHTML = '';
 
   proyectos.forEach(project => {
-    const option = document.createElement('option');
-    option.value = project.id;
-    option.textContent = `${project.nombre} (${project.codigo})`;
-    selectProjectActual.appendChild(option);
+    const item = document.createElement('li');
+    item.className = 'cursor-pointer px-4 py-3 hover:bg-slate-900';
+    item.textContent = project.nombre;
+    item.dataset.projectId = project.id;
+    item.addEventListener('click', async () => {
+      setSelectedProject(project.id);
+      document.getElementById('project-selector-text').textContent = project.nombre;
+      menu.classList.add('hidden');
+      await loadProjectView();
+    });
+    menuList.appendChild(item);
   });
 
   const selected = getSelectedProject();
   if (selected) {
-    selectProjectActual.value = selected.id;
+    document.getElementById('project-selector-text').textContent = selected.nombre;
   }
 
-  selectProjectActual.onchange = () => {
-    if (selectProjectActual.value) {
-      setSelectedProject(selectProjectActual.value);
-    }
+  button.onclick = () => {
+    menu.classList.toggle('hidden');
   };
+
+  if (!window._projectSwitcherCloseListenerAdded) {
+    document.addEventListener('click', (event) => {
+      if (!switcherWrapper.contains(event.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+    window._projectSwitcherCloseListenerAdded = true;
+  }
 }
 
 function bindProjectCodeButtons() {
@@ -811,20 +841,63 @@ if (formAgregarDato) {
 
   formAgregarDato.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+    const selectedProject = getSelectedProject();
     const valorSeleccionado = selectCapitulo.value;
     const progresoIngresado = parseFloat(document.getElementById('input-progreso').value);
     const descripcionIngresada = document.getElementById('input-descripcion').value.trim();
     const fechaActual = new Date().toISOString();
-    
+
     try {
-      if (valorSeleccionado === 'nuevo') {
-        const nombreNuevo = inputNuevoCapitulo.value.trim();
-        if (nombreNuevo) {
-          await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+      if (!selectedProject) {
+        throw new Error('No hay proyecto seleccionado.');
+      }
+
+      if (selectedProject.id === 'project-las-delicias') {
+        if (valorSeleccionado === 'nuevo') {
+          const nombreNuevo = inputNuevoCapitulo.value.trim();
+          if (nombreNuevo) {
+            await fetch(API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                nombre: nombreNuevo,
+                progreso: progresoIngresado,
+                historial: [{
+                  fecha: fechaActual,
+                  descripcion: descripcionIngresada,
+                  progresoAnterior: 0,
+                  progresoNuevo: progresoIngresado
+                }]
+              })
+            });
+          }
+        } else {
+          const index = parseInt(valorSeleccionado);
+          if (!isNaN(index) && capitulos[index]) {
+            const capId = capitulos[index].id;
+            const progresoViejo = capitulos[index].progreso;
+            await fetch(`${API_URL}/${capId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                progreso: progresoIngresado,
+                nuevoHistorial: {
+                  fecha: fechaActual,
+                  descripcion: descripcionIngresada,
+                  progresoAnterior: progresoViejo,
+                  progresoNuevo: progresoIngresado
+                }
+              })
+            });
+          }
+        }
+      } else {
+        const chapters = window.DashboardData.getProjectChapters(selectedProject.id) || [];
+        if (valorSeleccionado === 'nuevo') {
+          const nombreNuevo = inputNuevoCapitulo.value.trim();
+          if (nombreNuevo) {
+            const newChapter = {
+              id: createId('cap'),
               nombre: nombreNuevo,
               progreso: progresoIngresado,
               historial: [{
@@ -833,38 +906,30 @@ if (formAgregarDato) {
                 progresoAnterior: 0,
                 progresoNuevo: progresoIngresado
               }]
-            })
-          });
-        }
-      } else {
-        const index = parseInt(valorSeleccionado);
-        if (!isNaN(index) && capitulos[index]) {
-          const capId = capitulos[index].id;
-          const progresoViejo = capitulos[index].progreso;
-          
-          await fetch(`${API_URL}/${capId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              progreso: progresoIngresado,
-              nuevoHistorial: {
-                fecha: fechaActual,
-                descripcion: descripcionIngresada,
-                progresoAnterior: progresoViejo,
-                progresoNuevo: progresoIngresado
-              }
-            })
-          });
+            };
+            chapters.push(newChapter);
+            window.DashboardData.saveProjectChapters(selectedProject.id, chapters);
+          }
+        } else {
+          const index = parseInt(valorSeleccionado);
+          if (!isNaN(index) && chapters[index]) {
+            const chapter = chapters[index];
+            const progresoViejo = chapter.progreso || 0;
+            chapter.progreso = progresoIngresado;
+            chapter.historial = chapter.historial || [];
+            chapter.historial.push({
+              fecha: fechaActual,
+              descripcion: descripcionIngresada,
+              progresoAnterior: progresoViejo,
+              progresoNuevo: progresoIngresado
+            });
+            window.DashboardData.saveProjectChapters(selectedProject.id, chapters);
+          }
         }
       }
-      
-      // Recargar datos y re-renderizar todo
-      await initApp();
-      
-      // Actualizar select
+
+      await loadProjectView();
       poblarSelectCapitulos();
-      
-      // Ocultar input nuevo capítulo
       containerNuevoCapitulo.classList.add('hidden');
       inputNuevoCapitulo.removeAttribute('required');
 
@@ -966,35 +1031,41 @@ if (formEliminarProyecto) {
 if (formEliminarDato) {
   formEliminarDato.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+    const selectedProject = getSelectedProject();
     const indexStr = selectCapituloEliminar.value;
     if (indexStr === "") return;
-    
+
     const index = parseInt(indexStr);
-    if (!isNaN(index) && capitulos[index]) {
-      try {
-        const capId = capitulos[index].id;
-        
-        await fetch(`${API_URL}/${capId}`, {
-          method: 'DELETE'
-        });
-        
-        // Recargar datos y re-renderizar todo
-        await initApp();
-        
-        // Actualizar select
-        poblarSelectCapitulos();
-        
-        if (formDeleteMessage) {
-          formDeleteMessage.classList.remove('hidden');
-          setTimeout(() => {
-            formDeleteMessage.classList.add('hidden');
-          }, 4000);
+    if (!selectedProject) return;
+
+    try {
+      if (selectedProject.id === 'project-las-delicias') {
+        if (!isNaN(index) && capitulos[index]) {
+          const capId = capitulos[index].id;
+          await fetch(`${API_URL}/${capId}`, {
+            method: 'DELETE'
+          });
         }
-      } catch (err) {
-        console.error('Error al eliminar capítulo:', err);
-        alert('Hubo un error al eliminar el capítulo.');
+      } else {
+        const chapters = window.DashboardData.getProjectChapters(selectedProject.id) || [];
+        if (!isNaN(index) && chapters[index]) {
+          chapters.splice(index, 1);
+          window.DashboardData.saveProjectChapters(selectedProject.id, chapters);
+        }
       }
+
+      await loadProjectView();
+      poblarSelectCapitulos();
+
+      if (formDeleteMessage) {
+        formDeleteMessage.classList.remove('hidden');
+        setTimeout(() => {
+          formDeleteMessage.classList.add('hidden');
+        }, 4000);
+      }
+    } catch (err) {
+      console.error('Error al eliminar capítulo:', err);
+      alert('Hubo un error al eliminar el capítulo.');
     }
   });
 }

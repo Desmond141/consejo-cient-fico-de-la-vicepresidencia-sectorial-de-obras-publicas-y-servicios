@@ -1,6 +1,7 @@
 (function () {
   const PROJECTS_KEY = 'obras_dashboard_projects';
   const USERS_KEY = 'obras_dashboard_users';
+  const PROJECT_CHAPTERS_KEY = 'obras_dashboard_project_chapters';
 
   function createId(prefix) {
     return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -44,7 +45,7 @@
       const raw = localStorage.getItem(key);
       if (!raw) return fallback;
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : fallback;
+      return parsed;
     } catch (error) {
       return fallback;
     }
@@ -52,6 +53,32 @@
 
   function saveList(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function getProjectChaptersMap() {
+    const stored = safeParse(PROJECT_CHAPTERS_KEY, {});
+    return typeof stored === 'object' && stored !== null ? stored : {};
+  }
+
+  function getProjectChaptersFromStore(projectId) {
+    const map = getProjectChaptersMap();
+    const chapters = map[projectId];
+    return Array.isArray(chapters) ? chapters : [];
+  }
+
+  function saveProjectChaptersToStore(projectId, chapters) {
+    const map = getProjectChaptersMap();
+    map[projectId] = Array.isArray(chapters) ? chapters : [];
+    saveList(PROJECT_CHAPTERS_KEY, map);
+    return chapters;
+  }
+
+  function removeProjectChapters(projectId) {
+    const map = getProjectChaptersMap();
+    if (map[projectId]) {
+      delete map[projectId];
+      saveList(PROJECT_CHAPTERS_KEY, map);
+    }
   }
 
   function getProjects() {
@@ -178,7 +205,16 @@
   function deleteProject(projectId) {
     const projects = getProjects().filter(project => project.id !== projectId);
     saveProjects(projects);
+    removeProjectChapters(projectId);
     return projects;
+  }
+
+  function getProjectChapters(projectId) {
+    return getProjectChaptersFromStore(projectId);
+  }
+
+  function saveProjectChapters(projectId, chapters) {
+    return saveProjectChaptersToStore(projectId, chapters);
   }
 
   function isGingerlinSession(session) {
@@ -203,6 +239,8 @@
     saveUsers,
     createUser,
     getProjectNameById,
+    getProjectChapters,
+    saveProjectChapters,
     canManageUsers,
     canManageProjects,
     isGingerlinSession

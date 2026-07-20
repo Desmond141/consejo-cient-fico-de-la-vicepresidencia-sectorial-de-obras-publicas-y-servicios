@@ -1,6 +1,8 @@
 let capitulos = [];
 let AVANCE_GLOBAL = 0;
 let proyectos = [];
+let proyectoActualId = null;
+const SELECTED_PROJECT_KEY = 'obras_dashboard_selected_project';
 
 // URL base de la API (asume mismo host y puerto)
 const API_URL = '/api/capitulos';
@@ -28,7 +30,49 @@ function calcularAvanceGlobal() {
   return Math.round(totalProgreso / capitulos.length);
 }
 
+function loadSelectedProjectId() {
+  const stored = localStorage.getItem(SELECTED_PROJECT_KEY);
+  if (stored) proyectoActualId = stored;
+}
 
+function saveSelectedProjectId(projectId) {
+  if (!projectId) {
+    localStorage.removeItem(SELECTED_PROJECT_KEY);
+    return;
+  }
+  localStorage.setItem(SELECTED_PROJECT_KEY, projectId);
+}
+
+function getSelectedProject() {
+  syncProjectsFromDataLayer();
+  if (!proyectoActualId || !proyectos.some(project => project.id === proyectoActualId)) {
+    proyectoActualId = proyectos.length ? proyectos[0].id : null;
+    saveSelectedProjectId(proyectoActualId);
+  }
+  return proyectos.find(project => project.id === proyectoActualId) || null;
+}
+
+function setSelectedProject(projectId) {
+  if (!projectId) return;
+  const project = proyectos.find(project => project.id === projectId);
+  if (!project) return;
+  proyectoActualId = projectId;
+  saveSelectedProjectId(projectId);
+  renderProjectContext();
+}
+
+function renderProjectContext() {
+  const project = getSelectedProject();
+  const title = document.querySelector('#vista-dashboard h2');
+  const description = document.getElementById('header-description');
+
+  if (title && project) {
+    title.textContent = project.nombre;
+  }
+  if (description && project) {
+    description.textContent = `Proyecto seleccionado: ${project.nombre} — Código ${project.codigo}`;
+  }
+}
 
 const CIRCUNFERENCIA = 2 * Math.PI * 52;
 let tipoGrafico = 'barras';
@@ -468,15 +512,21 @@ function renderProjectCards() {
 
   const cards = proyectos.map(project => `
     <div class="rounded-2xl border border-slate-700/60 bg-slate-900/50 p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h4 class="text-sm font-semibold text-slate-100">${project.nombre}</h4>
+      <div class="flex items-center justify-between mb-3 gap-3">
+        <div>
+          <h4 class="text-sm font-semibold text-slate-100">${project.nombre}</h4>
+          <p class="text-[11px] text-slate-500 mt-1">Código: ${project.codigo || 'N/A'}</p>
+        </div>
         <span class="text-xs px-2 py-1 rounded-full ${project.progreso >= 100 ? 'bg-emerald-500/15 text-emerald-300' : 'bg-sky-500/15 text-sky-300'}">${project.progreso}%</span>
       </div>
       <p class="text-sm text-slate-400 mb-3">${project.descripcion || 'Sin descripción'}</p>
       <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
         <div class="h-full rounded-full" style="width:${Math.min(100, Math.max(0, project.progreso))}%; background: linear-gradient(90deg, #38bdf8, #0ea5e9);"></div>
       </div>
-      <p class="text-[11px] text-slate-500 mt-3">Creado por ${project.creadoPor || 'Superadmin'}</p>
+      <div class="mt-3 text-[11px] text-slate-500">
+        <p>Creado por ${project.creadoPor || 'Superadmin'}</p>
+        <p>Creado en ${new Date(project.creadoEn).toLocaleDateString('es-ES')}</p>
+      </div>
     </div>
   `).join('');
 
@@ -496,7 +546,10 @@ function renderUserCards() {
       </div>
       <p class="text-sm text-slate-400">${user.email}</p>
       <p class="text-sm text-slate-400">Usuario: ${user.username}</p>
-      <p class="text-[11px] text-slate-500 mt-3">${user.proyectoNombre ? 'Proyecto: ' + user.proyectoNombre : 'Sin proyecto asignado'}</p>
+      <div class="mt-3 text-[11px] text-slate-500 space-y-1">
+        <p>${user.proyectoNombre ? 'Proyecto: ' + user.proyectoNombre : 'Sin proyecto asignado'}</p>
+        ${user.proyectoCodigo ? `<p>Código del proyecto: ${user.proyectoCodigo}</p>` : ''}
+      </div>
     </div>
   `).join('');
 
@@ -505,6 +558,7 @@ function renderUserCards() {
 
 async function initApp() {
   await fetchCapitulos();
+  loadSelectedProjectId();
   syncProjectsFromDataLayer();
   AVANCE_GLOBAL = calcularAvanceGlobal();
   actualizarContadoresDinamicos();
@@ -515,6 +569,8 @@ async function initApp() {
   renderUserCards();
   poblarSelectProyectosUsuario();
   poblarSelectProyectosEliminar();
+  poblarProjectSwitcher();
+  renderProjectContext();
   
   if (typeof setFechaActual === 'function') {
     setFechaActual();
@@ -666,8 +722,67 @@ function poblarSelectProyectosUsuario() {
   proyectos.forEach(project => {
     const option = document.createElement('option');
     option.value = project.id;
-    option.textContent = project.nombre;
+    option.textContent = `${project.nombre} (${project.codigo})`;
     selectUsuarioProyecto.appendChild(option);
+  });
+}
+
+function poblarProjectSwitcher() {
+  const selectProjectActual = document.getElementById('select-proyecto-actual');
+  const switcherWrapper = document.getElementById('project-switcher-wrapper');
+  const session = window.Auth && typeof window.Auth.getSession === 'function' ? window.Auth.getSession() : null;
+  const canSwitchProject = window.DashboardData && typeof window.DashboardData.canManageProjects === 'function' ? window.DashboardData.canManageProjects(session) : false;
+
+  if (!selectProjectActual || !switcherWrapper) return;
+  if (!canSwitchProject) {
+    switcherWrapper.classList.add('hidden');
+    return;
+  }
+
+  switcherWrapper.classList.remove('hidden');
+  syncProjectsFromDataLayer();
+  selectProjectActual.innerHTML = '';
+
+  proyectos.forEach(project => {
+    const option = document.createElement('option');
+    option.value = project.id;
+    option.textContent = `${project.nombre} (${project.codigo})`;
+    selectProjectActual.appendChild(option);
+  });
+
+  const selected = getSelectedProject();
+  if (selected) {
+    selectProjectActual.value = selected.id;
+  }
+
+  selectProjectActual.onchange = () => {
+    if (selectProjectActual.value) {
+      setSelectedProject(selectProjectActual.value);
+    }
+  };
+}
+
+function bindProjectCodeButtons() {
+  const projectList = document.getElementById('project-list');
+  if (!projectList) return;
+  projectList.querySelectorAll('.project-code-button').forEach(button => {
+    button.addEventListener('click', () => {
+      const projectId = button.dataset.projectId;
+      const project = proyectos.find(p => p.id === projectId);
+      if (!project) return;
+      const nuevoCodigo = prompt('Ingrese el nuevo código para el proyecto:', project.codigo);
+      if (!nuevoCodigo) return;
+      const updated = window.DashboardData.updateProjectCode(projectId, nuevoCodigo);
+      if (updated) {
+        syncProjectsFromDataLayer();
+        renderProjectCards();
+        poblarSelectProyectosUsuario();
+        poblarSelectProyectosEliminar();
+        poblarProjectSwitcher();
+        renderProjectContext();
+        alert(`Código actualizado a ${updated.codigo}`);
+      }
+    });
   });
 }
 
@@ -785,6 +900,8 @@ if (formAgregarProyecto) {
     renderProjectCards();
     poblarSelectProyectosUsuario();
     poblarSelectProyectosEliminar();
+    poblarProjectSwitcher();
+    setSelectedProject(created.id);
     formAgregarProyecto.reset();
     alert(`Proyecto creado: ${created.nombre}`);
   });
@@ -810,6 +927,7 @@ if (formCrearUsuario) {
       rol: document.getElementById('select-usuario-rol').value,
       proyectoId: selectedProject ? selectedProject.id : '',
       proyectoNombre: selectedProject ? selectedProject.nombre : '',
+      proyectoCodigo: selectedProject ? selectedProject.codigo : '',
       creadoPor: session && session.nombre ? session.nombre : 'Superadmin'
     };
 
@@ -830,10 +948,12 @@ if (formEliminarProyecto) {
     if (!projectId) return;
 
     window.DashboardData.deleteProject(projectId);
+    window.DashboardData.clearProjectFromUsers(projectId);
     syncProjectsFromDataLayer();
     renderProjectCards();
     poblarSelectProyectosUsuario();
     poblarSelectProyectosEliminar();
+    poblarProjectSwitcher();
 
     if (deleteProjectMessage) {
       deleteProjectMessage.textContent = 'Proyecto eliminado correctamente.';

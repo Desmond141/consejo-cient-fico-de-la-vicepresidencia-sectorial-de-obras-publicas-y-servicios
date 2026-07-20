@@ -6,6 +6,39 @@
     return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  function normalizeProjectCode(value) {
+    return (value || '').toString().trim().toUpperCase();
+  }
+
+  function generateProjectCode(existingCodes = new Set()) {
+    const letters = () => Array.from({ length: 3 }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
+    const numbers = () => Math.floor(1000 + Math.random() * 9000);
+    let code;
+    let attempts = 0;
+    do {
+      code = `${letters()}-${numbers()}`;
+      attempts += 1;
+      if (attempts > 20) {
+        break;
+      }
+    } while (existingCodes.has(code));
+    return code;
+  }
+
+  function ensureProjectCodes(projects) {
+    const usedCodes = new Set();
+    return projects.map(project => {
+      const codigo = normalizeProjectCode(project.codigo);
+      if (codigo && !usedCodes.has(codigo)) {
+        usedCodes.add(codigo);
+        return { ...project, codigo };
+      }
+      const newCode = generateProjectCode(usedCodes);
+      usedCodes.add(newCode);
+      return { ...project, codigo: newCode };
+    });
+  }
+
   function safeParse(key, fallback) {
     try {
       const raw = localStorage.getItem(key);
@@ -30,17 +63,19 @@
         progreso: 60,
         estado: 'En ejecución',
         creadoPor: 'Sistema',
-        creadoEn: new Date().toISOString()
+        creadoEn: new Date().toISOString(),
+        codigo: generateProjectCode()
       }
     ];
 
     const stored = safeParse(PROJECTS_KEY, defaultProjects);
-    if (!stored.length) {
-      saveList(PROJECTS_KEY, defaultProjects);
-      return [...defaultProjects];
+    const projects = stored.length ? ensureProjectCodes(stored) : [...defaultProjects];
+
+    if (!stored.length || projects.some(project => !project.codigo)) {
+      saveProjects(projects);
     }
 
-    return stored;
+    return projects;
   }
 
   function saveProjects(projects) {
@@ -57,12 +92,51 @@
       progreso: Number(payload.progreso) || 0,
       estado: payload.estado || (Number(payload.progreso) >= 100 ? 'Completado' : 'En ejecución'),
       creadoPor: payload.creadoPor || 'Superadmin',
-      creadoEn: payload.creadoEn || new Date().toISOString()
+      creadoEn: payload.creadoEn || new Date().toISOString(),
+      codigo: generateProjectCode()
     };
 
     projects.push(project);
     saveProjects(projects);
     return project;
+  }
+
+  function getProjectById(projectId) {
+    return getProjects().find(project => project.id === projectId) || null;
+  }
+
+  function updateProjectCode(projectId, newCode) {
+    const projects = getProjects();
+    const project = projects.find(project => project.id === projectId);
+    if (!project) return null;
+    project.codigo = newCode && typeof newCode === 'string' && newCode.trim() ? newCode.trim() : generateProjectCode();
+    saveProjects(projects);
+    return project;
+  }
+
+  function canManageProjects(session) {
+    return !!session && (
+      session.rol === 'Superadmin' ||
+      session.rol === 'Programador' ||
+      isGingerlinSession(session)
+    );
+  }
+
+  function clearProjectFromUsers(projectId) {
+    const users = getUsers();
+    const updated = users.map(user => {
+      if (user.proyectoId === projectId) {
+        return {
+          ...user,
+          proyectoId: '',
+          proyectoNombre: '',
+          proyectoCodigo: ''
+        };
+      }
+      return user;
+    });
+    saveUsers(updated);
+    return updated;
   }
 
   function getUsers() {
@@ -85,6 +159,7 @@
       passwordHash: payload.passwordHash || btoa(payload.password || ''),
       proyectoId: payload.proyectoId || '',
       proyectoNombre: payload.proyectoNombre || '',
+      proyectoCodigo: payload.proyectoCodigo || '',
       creadoPor: payload.creadoPor || 'Superadmin',
       creadoEn: payload.creadoEn || new Date().toISOString()
     };
@@ -122,11 +197,14 @@
     saveProjects,
     createProject,
     deleteProject,
+    getProjectById,
+    updateProjectCode,
     getUsers,
     saveUsers,
     createUser,
     getProjectNameById,
     canManageUsers,
+    canManageProjects,
     isGingerlinSession
   };
 })();

@@ -15,7 +15,7 @@ async function initDB() {
   const client = await pool.connect();
   try {
     console.log('Verificando base de datos...');
-    
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS capitulos (
         id SERIAL PRIMARY KEY,
@@ -36,7 +36,35 @@ async function initDB() {
       );
     `);
 
-    // Comprobar si hay datos iniciales
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS proyectos (
+        id VARCHAR(255) PRIMARY KEY,
+        nombre VARCHAR(255) NOT NULL,
+        descripcion TEXT,
+        progreso INTEGER NOT NULL DEFAULT 0,
+        estado VARCHAR(100),
+        creado_por VARCHAR(255),
+        creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        codigo VARCHAR(50)
+      );
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id VARCHAR(255) PRIMARY KEY,
+        nombre VARCHAR(255) NOT NULL,
+        username VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        rol VARCHAR(100),
+        password_hash TEXT,
+        proyecto_id VARCHAR(255),
+        proyecto_nombre TEXT,
+        proyecto_codigo VARCHAR(50),
+        creado_por VARCHAR(255),
+        creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     const res = await client.query('SELECT COUNT(*) FROM capitulos');
     if (parseInt(res.rows[0].count) === 0) {
       console.log('Insertando datos por defecto...');
@@ -49,7 +77,7 @@ async function initDB() {
         { nombre: 'Instalación sanitaria (riego)', progreso: 60 },
         { nombre: 'Intervención de exteriores', progreso: 40 },
       ];
-      
+
       for (let i = 0; i < defaultCapitulos.length; i++) {
         await client.query(
           'INSERT INTO capitulos (nombre, progreso, orden) VALUES ($1, $2, $3)',
@@ -57,7 +85,24 @@ async function initDB() {
         );
       }
     }
-    
+
+    const projectsCount = await client.query('SELECT COUNT(*) FROM proyectos');
+    if (parseInt(projectsCount.rows[0].count) === 0) {
+      await client.query(`
+        INSERT INTO proyectos (id, nombre, descripcion, progreso, estado, creado_por, creado_en, codigo)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [
+        'project-las-delicias',
+        'Remodelación integral Plaza Las Delicias Caracas',
+        'Proyecto principal de seguimiento del avance de obra.',
+        60,
+        'En ejecución',
+        'Sistema',
+        new Date().toISOString(),
+        'DEL-1000'
+      ]);
+    }
+
     console.log('Base de datos inicializada con éxito.');
   } catch (err) {
     console.error('Error inicializando base de datos:', err);

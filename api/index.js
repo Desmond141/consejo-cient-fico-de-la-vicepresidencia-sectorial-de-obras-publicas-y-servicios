@@ -1,10 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const db = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -28,10 +26,39 @@ app.use(async (req, res, next) => {
 // --- API ROUTES ---
 const router = express.Router();
 
+function mapProjectRow(row) {
+  return {
+    id: row.id,
+    nombre: row.nombre,
+    descripcion: row.descripcion,
+    progreso: Number(row.progreso) || 0,
+    estado: row.estado,
+    creadoPor: row.creado_por,
+    creadoEn: row.creado_en,
+    codigo: row.codigo
+  };
+}
+
+function mapUserRow(row) {
+  return {
+    id: row.id,
+    nombre: row.nombre,
+    username: row.username,
+    email: row.email,
+    rol: row.rol,
+    passwordHash: row.password_hash,
+    proyectoId: row.proyecto_id,
+    proyectoNombre: row.proyecto_nombre,
+    proyectoCodigo: row.proyecto_codigo,
+    creadoPor: row.creado_por,
+    creadoEn: row.creado_en
+  };
+}
+
 // GET: Prueba de conexión
 router.get('/test', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     dbInitialized,
     hasPostgresUrl: !!process.env.POSTGRES_URL,
     hasDatabaseUrl: !!process.env.DATABASE_URL
@@ -43,13 +70,12 @@ router.get('/capitulos', async (req, res) => {
   try {
     const capsResult = await db.query('SELECT * FROM capitulos ORDER BY orden ASC');
     const histResult = await db.query('SELECT * FROM historial ORDER BY fecha DESC');
-    
-    // Anidar historial dentro de capítulos
+
     const capitulos = capsResult.rows.map(cap => {
       const historial = histResult.rows.filter(h => h.capitulo_id === cap.id);
       return { ...cap, historial };
     });
-    
+
     res.json(capitulos);
   } catch (err) {
     console.error(err);
@@ -60,9 +86,8 @@ router.get('/capitulos', async (req, res) => {
 // POST: Crear un nuevo capítulo
 router.post('/capitulos', async (req, res) => {
   const { nombre, progreso, historial } = req.body;
-  
+
   try {
-    // Obtener max orden
     const maxOrdenRes = await db.query('SELECT MAX(orden) FROM capitulos');
     const nextOrden = (maxOrdenRes.rows[0].max !== null ? parseInt(maxOrdenRes.rows[0].max) : -1) + 1;
 
@@ -70,10 +95,9 @@ router.post('/capitulos', async (req, res) => {
       'INSERT INTO capitulos (nombre, progreso, orden) VALUES ($1, $2, $3) RETURNING *',
       [nombre, progreso, nextOrden]
     );
-    
+
     const capId = newCap.rows[0].id;
-    
-    // Si viene con historial (creación inicial)
+
     if (historial && historial.length > 0) {
       const h = historial[0];
       await db.query(
@@ -81,7 +105,7 @@ router.post('/capitulos', async (req, res) => {
         [capId, h.fecha, h.descripcion, h.progresoAnterior, h.progresoNuevo]
       );
     }
-    
+
     res.json({ success: true, id: capId });
   } catch (err) {
     console.error(err);
@@ -93,17 +117,17 @@ router.post('/capitulos', async (req, res) => {
 router.put('/capitulos/:id', async (req, res) => {
   const { id } = req.params;
   const { progreso, nuevoHistorial } = req.body;
-  
+
   try {
     await db.query('UPDATE capitulos SET progreso = $1 WHERE id = $2', [progreso, id]);
-    
+
     if (nuevoHistorial) {
       await db.query(
         'INSERT INTO historial (capitulo_id, fecha, descripcion, progreso_anterior, progreso_nuevo) VALUES ($1, $2, $3, $4, $5)',
         [id, nuevoHistorial.fecha, nuevoHistorial.descripcion, nuevoHistorial.progresoAnterior, nuevoHistorial.progresoNuevo]
       );
     }
-    
+
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -114,7 +138,7 @@ router.put('/capitulos/:id', async (req, res) => {
 // DELETE: Eliminar un capítulo
 router.delete('/capitulos/:id', async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     await db.query('DELETE FROM capitulos WHERE id = $1', [id]);
     res.json({ success: true });
@@ -124,7 +148,84 @@ router.delete('/capitulos/:id', async (req, res) => {
   }
 });
 
-// Vercel maneja el frontend, así que quitamos el fallback manual de index.html
+// Proyectos
+router.get('/proyectos', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM proyectos ORDER BY creado_en ASC, nombre ASC');
+    res.json(result.rows.map(mapProjectRow));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al leer proyectos' });
+  }
+});
+
+router.put('/proyectos', async (req, res) => {
+  const projects = Array.isArray(req.body) ? req.body : [];
+
+  try {
+    await db.query('DELETE FROM proyectos');
+    for (const project of projects) {
+      await db.query(
+        'INSERT INTO proyectos (id, nombre, descripcion, progreso, estado, creado_por, creado_en, codigo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [
+          project.id,
+          project.nombre,
+          project.descripcion,
+          Number(project.progreso) || 0,
+          project.estado,
+          project.creadoPor,
+          project.creadoEn || new Date().toISOString(),
+          project.codigo
+        ]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al guardar proyectos' });
+  }
+});
+
+// Usuarios
+router.get('/usuarios', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM usuarios ORDER BY creado_en ASC, nombre ASC');
+    res.json(result.rows.map(mapUserRow));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al leer usuarios' });
+  }
+});
+
+router.put('/usuarios', async (req, res) => {
+  const users = Array.isArray(req.body) ? req.body : [];
+
+  try {
+    await db.query('DELETE FROM usuarios');
+    for (const user of users) {
+      await db.query(
+        'INSERT INTO usuarios (id, nombre, username, email, rol, password_hash, proyecto_id, proyecto_nombre, proyecto_codigo, creado_por, creado_en) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+        [
+          user.id,
+          user.nombre,
+          user.username,
+          user.email,
+          user.rol,
+          user.passwordHash,
+          user.proyectoId || '',
+          user.proyectoNombre || '',
+          user.proyectoCodigo || '',
+          user.creadoPor,
+          user.creadoEn || new Date().toISOString()
+        ]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al guardar usuarios' });
+  }
+});
 
 // Montar router en diferentes prefijos por si Vercel altera el req.url
 app.use('/api', router);

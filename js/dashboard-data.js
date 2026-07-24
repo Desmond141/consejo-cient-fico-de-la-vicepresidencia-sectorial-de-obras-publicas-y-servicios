@@ -2,6 +2,13 @@
   const PROJECTS_KEY = 'obras_dashboard_projects';
   const USERS_KEY = 'obras_dashboard_users';
   const PROJECT_CHAPTERS_KEY = 'obras_dashboard_project_chapters';
+  const PROJECTS_API_URL = '/api/proyectos';
+  const USERS_API_URL = '/api/usuarios';
+
+  let projectsCache = null;
+  let usersCache = null;
+  let hasHydratedProjects = false;
+  let hasHydratedUsers = false;
 
   function createId(prefix) {
     return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -28,7 +35,7 @@
 
   function ensureProjectCodes(projects) {
     const usedCodes = new Set();
-    return projects.map(project => {
+    return (Array.isArray(projects) ? projects : []).map(project => {
       const codigo = normalizeProjectCode(project.codigo);
       if (codigo && !usedCodes.has(codigo)) {
         usedCodes.add(codigo);
@@ -53,6 +60,125 @@
 
   function saveList(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
+  }
+
+  function getDefaultProjects() {
+    return [
+      {
+        id: 'project-las-delicias',
+        nombre: 'Remodelación integral Plaza Las Delicias Caracas',
+        descripcion: 'Proyecto principal de seguimiento del avance de obra.',
+        progreso: 60,
+        estado: 'En ejecución',
+        creadoPor: 'Sistema',
+        creadoEn: new Date().toISOString(),
+        codigo: generateProjectCode()
+      }
+    ];
+  }
+
+  function notifyDataUpdated() {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      try {
+        window.dispatchEvent(new CustomEvent('dashboard-data-updated'));
+      } catch (error) {
+        console.warn('No se pudo notificar actualización de datos:', error);
+      }
+    }
+  }
+
+  function persistProjectsToStorage(projects) {
+    saveList(PROJECTS_KEY, projects);
+    projectsCache = projects;
+    notifyDataUpdated();
+    return projects;
+  }
+
+  function persistUsersToStorage(users) {
+    saveList(USERS_KEY, users);
+    usersCache = users;
+    notifyDataUpdated();
+    return users;
+  }
+
+  function syncProjectsToServer(projects) {
+    if (typeof fetch !== 'function') return Promise.resolve(projects);
+    return fetch(PROJECTS_API_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(projects)
+    }).catch(error => {
+      console.warn('No fue posible sincronizar proyectos con el servidor:', error);
+      return null;
+    });
+  }
+
+  function syncUsersToServer(users) {
+    if (typeof fetch !== 'function') return Promise.resolve(users);
+    return fetch(USERS_API_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(users)
+    }).catch(error => {
+      console.warn('No fue posible sincronizar usuarios con el servidor:', error);
+      return null;
+    });
+  }
+
+  function hydrateProjectsFromServer() {
+    if (hasHydratedProjects || typeof fetch !== 'function') {
+      return Promise.resolve(projectsCache || []);
+    }
+
+    hasHydratedProjects = true;
+    return fetch(PROJECTS_API_URL)
+      .then(response => {
+        if (!response.ok) throw new Error('No se pudo leer proyectos del servidor');
+        return response.json();
+      })
+      .then(data => {
+        const normalized = ensureProjectCodes(Array.isArray(data) ? data : []);
+        if (normalized.length) {
+          persistProjectsToStorage(normalized);
+          return normalized;
+        }
+
+        const localProjects = projectsCache || safeParse(PROJECTS_KEY, getDefaultProjects());
+        return persistProjectsToStorage(ensureProjectCodes(Array.isArray(localProjects) ? localProjects : getDefaultProjects()));
+      })
+      .catch(error => {
+        console.warn('Usando datos locales para proyectos:', error);
+        const localProjects = projectsCache || safeParse(PROJECTS_KEY, getDefaultProjects());
+        return persistProjectsToStorage(ensureProjectCodes(Array.isArray(localProjects) ? localProjects : getDefaultProjects()));
+      });
+  }
+
+  function hydrateUsersFromServer() {
+    if (hasHydratedUsers || typeof fetch !== 'function') {
+      return Promise.resolve(usersCache || []);
+    }
+
+    hasHydratedUsers = true;
+    return fetch(USERS_API_URL)
+      .then(response => {
+        if (!response.ok) throw new Error('No se pudo leer usuarios del servidor');
+        return response.json();
+      })
+      .then(data => {
+        const normalized = Array.isArray(data) ? data : [];
+        if (normalized.length) {
+          persistUsersToStorage(normalized);
+          return normalized;
+        }
+
+        const localUsers = usersCache || safeParse(USERS_KEY, []);
+        return persistUsersToStorage(Array.isArray(localUsers) ? localUsers : []);
+      })
+      .catch(error => {
+        console.warn('Usando datos locales para usuarios:', error);
+        const localUsers = usersCache || safeParse(USERS_KEY, []);
+        return persistUsersToStorage(Array.isArray(localUsers) ? localUsers : []);
+      });
   }
 
   function getProjectChaptersMap() {
@@ -82,32 +208,21 @@
   }
 
   function getProjects() {
-    const defaultProjects = [
-      {
-        id: 'project-las-delicias',
-        nombre: 'Remodelación integral Plaza Las Delicias Caracas',
-        descripcion: 'Proyecto principal de seguimiento del avance de obra.',
-        progreso: 60,
-        estado: 'En ejecución',
-        creadoPor: 'Sistema',
-        creadoEn: new Date().toISOString(),
-        codigo: generateProjectCode()
-      }
-    ];
-
-    const stored = safeParse(PROJECTS_KEY, defaultProjects);
-    const projects = stored.length ? ensureProjectCodes(stored) : [...defaultProjects];
-
-    if (!stored.length || projects.some(project => !project.codigo)) {
-      saveProjects(projects);
+    if (!projectsCache) {
+      const stored = safeParse(PROJECTS_KEY, getDefaultProjects());
+      const normalized = ensureProjectCodes(Array.isArray(stored) ? stored : getDefaultProjects());
+      persistProjectsToStorage(normalized);
     }
 
-    return projects;
+    hydrateProjectsFromServer();
+    return projectsCache || [];
   }
 
   function saveProjects(projects) {
-    saveList(PROJECTS_KEY, projects);
-    return projects;
+    const normalized = ensureProjectCodes(Array.isArray(projects) ? projects : []);
+    persistProjectsToStorage(normalized);
+    syncProjectsToServer(normalized);
+    return normalized;
   }
 
   function createProject(payload) {
@@ -167,12 +282,20 @@
   }
 
   function getUsers() {
-    return safeParse(USERS_KEY, []);
+    if (!usersCache) {
+      const stored = safeParse(USERS_KEY, []);
+      persistUsersToStorage(Array.isArray(stored) ? stored : []);
+    }
+
+    hydrateUsersFromServer();
+    return usersCache || [];
   }
 
   function saveUsers(users) {
-    saveList(USERS_KEY, users);
-    return users;
+    const normalized = Array.isArray(users) ? users : [];
+    persistUsersToStorage(normalized);
+    syncUsersToServer(normalized);
+    return normalized;
   }
 
   function createUser(payload) {
@@ -228,6 +351,17 @@
     return isGingerlinSession(session);
   }
 
+  function bootstrapRemoteSync() {
+    hydrateProjectsFromServer();
+    hydrateUsersFromServer();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapRemoteSync);
+  } else {
+    bootstrapRemoteSync();
+  }
+
   window.DashboardData = {
     getProjects,
     saveProjects,
@@ -243,6 +377,7 @@
     saveProjectChapters,
     canManageUsers,
     canManageProjects,
-    isGingerlinSession
+    isGingerlinSession,
+    hydrateRemoteData: bootstrapRemoteSync
   };
 })();

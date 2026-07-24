@@ -32,23 +32,40 @@
     return Array.isArray(admins) && admins.length > 0 && admins.every(isAdminEntryValid);
   }
 
+  function getDashboardUsers() {
+    if (window.DashboardData && typeof window.DashboardData.getUsers === 'function') {
+      const users = window.DashboardData.getUsers();
+      if (Array.isArray(users) && users.length) {
+        return users.filter(user => user && typeof user.email === 'string' && typeof user.username === 'string' && typeof user.nombre === 'string');
+      }
+    }
+    return [];
+  }
+
   function loadAdmins() {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
+    let baseAdmins = DEFAULT_SUPERADMINS;
+
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (isValidAdminsArray(parsed)) {
+          baseAdmins = parsed;
+        } else {
+          throw new Error('Formato incorrecto');
+        }
+      } catch (error) {
+        saveAdmins(DEFAULT_SUPERADMINS);
+        baseAdmins = [...DEFAULT_SUPERADMINS];
+      }
+    } else {
       saveAdmins(DEFAULT_SUPERADMINS);
-      return [...DEFAULT_SUPERADMINS];
+      baseAdmins = [...DEFAULT_SUPERADMINS];
     }
 
-    try {
-      const parsed = JSON.parse(raw);
-      if (!isValidAdminsArray(parsed)) {
-        throw new Error('Formato incorrecto');
-      }
-      return parsed;
-    } catch (error) {
-      saveAdmins(DEFAULT_SUPERADMINS);
-      return [...DEFAULT_SUPERADMINS];
-    }
+    const dashboardUsers = getDashboardUsers();
+    const merged = [...baseAdmins, ...dashboardUsers];
+    return merged.filter((entry, index, self) => index === self.findIndex(candidate => candidate && candidate.email && candidate.email.toLowerCase() === entry.email.toLowerCase()));
   }
 
   function getAll() {

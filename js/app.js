@@ -533,6 +533,18 @@ function syncProjectsFromDataLayer() {
   }
 }
 
+function refreshDashboardDataView() {
+  syncProjectsFromDataLayer();
+  renderProjectCards();
+  renderUserCards();
+  poblarSelectProyectosUsuario();
+  poblarSelectProyectosEliminar();
+  poblarProjectSwitcher();
+  renderProjectContext();
+}
+
+window.addEventListener('dashboard-data-updated', refreshDashboardDataView);
+
 function renderProjectCards() {
   const projectList = document.getElementById('project-list');
   if (!projectList) return;

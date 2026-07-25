@@ -181,6 +181,79 @@
       });
   }
 
+  function createUser(payload) {
+    const users = getUsers();
+    const user = {
+      id: createId('user'),
+      nombre: payload.nombre || 'Usuario',
+      username: payload.username || payload.email || 'usuario',
+      email: payload.email || '',
+      rol: payload.rol || 'Usuario',
+      passwordHash: payload.passwordHash || btoa(payload.password || ''),
+      proyectoId: payload.proyectoId || '',
+      proyectoNombre: payload.proyectoNombre || '',
+      proyectoCodigo: payload.proyectoCodigo || '',
+      creadoPor: payload.creadoPor || 'Superadmin',
+      creadoEn: payload.creadoEn || new Date().toISOString()
+    };
+
+    users.push(user);
+    saveUsers(users);
+
+    if (typeof fetch === 'function') {
+      fetch(USERS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      }).catch(error => {
+        console.warn('No se pudo enviar usuario al servidor, se guardará localmente:', error);
+      });
+    }
+
+    return user;
+  }
+
+  function updateUser(userId, payload) {
+    const users = getUsers();
+    const index = users.findIndex(user => user.id === userId);
+    if (index === -1) return null;
+
+    const updated = {
+      ...users[index],
+      ...payload,
+      passwordHash: payload.passwordHash || users[index].passwordHash
+    };
+    users[index] = updated;
+    saveUsers(users);
+
+    if (typeof fetch === 'function') {
+      fetch(`${USERS_API_URL}/${encodeURIComponent(userId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      }).catch(error => {
+        console.warn('No se pudo actualizar usuario en servidor:', error);
+      });
+    }
+
+    return updated;
+  }
+
+  function deleteUser(userId) {
+    const users = getUsers().filter(user => user.id !== userId);
+    saveUsers(users);
+
+    if (typeof fetch === 'function') {
+      fetch(`${USERS_API_URL}/${encodeURIComponent(userId)}`, {
+        method: 'DELETE'
+      }).catch(error => {
+        console.warn('No se pudo eliminar usuario en servidor:', error);
+      });
+    }
+
+    return users;
+  }
+
   function getProjectChaptersMap() {
     const stored = safeParse(PROJECT_CHAPTERS_KEY, {});
     return typeof stored === 'object' && stored !== null ? stored : {};
@@ -298,27 +371,6 @@
     return normalized;
   }
 
-  function createUser(payload) {
-    const users = getUsers();
-    const user = {
-      id: createId('user'),
-      nombre: payload.nombre || 'Usuario',
-      username: payload.username || payload.email || 'usuario',
-      email: payload.email || '',
-      rol: payload.rol || 'Usuario',
-      passwordHash: payload.passwordHash || btoa(payload.password || ''),
-      proyectoId: payload.proyectoId || '',
-      proyectoNombre: payload.proyectoNombre || '',
-      proyectoCodigo: payload.proyectoCodigo || '',
-      creadoPor: payload.creadoPor || 'Superadmin',
-      creadoEn: payload.creadoEn || new Date().toISOString()
-    };
-
-    users.push(user);
-    saveUsers(users);
-    return user;
-  }
-
   function getProjectNameById(projectId) {
     const projects = getProjects();
     const found = projects.find(project => project.id === projectId);
@@ -372,6 +424,8 @@
     getUsers,
     saveUsers,
     createUser,
+    updateUser,
+    deleteUser,
     getProjectNameById,
     getProjectChapters,
     saveProjectChapters,

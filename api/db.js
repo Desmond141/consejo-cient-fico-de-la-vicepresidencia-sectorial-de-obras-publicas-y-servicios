@@ -21,7 +21,8 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         nombre VARCHAR(255) NOT NULL,
         progreso INTEGER NOT NULL DEFAULT 0,
-        orden INTEGER DEFAULT 0
+        orden INTEGER DEFAULT 0,
+        project_id VARCHAR(255) NOT NULL DEFAULT 'project-las-delicias'
       );
     `);
 
@@ -34,6 +35,10 @@ async function initDB() {
         progreso_anterior INTEGER NOT NULL,
         progreso_nuevo INTEGER NOT NULL
       );
+    `);
+
+    await client.query(`
+      ALTER TABLE capitulos ADD COLUMN IF NOT EXISTS project_id VARCHAR(255) NOT NULL DEFAULT 'project-las-delicias';
     `);
 
     await client.query(`

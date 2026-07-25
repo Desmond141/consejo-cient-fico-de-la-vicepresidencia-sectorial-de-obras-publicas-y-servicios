@@ -67,8 +67,14 @@ router.get('/test', (req, res) => {
 
 // GET: Obtener todos los capítulos con su historial
 router.get('/capitulos', async (req, res) => {
+  const { projectId } = req.query;
   try {
-    const capsResult = await db.query('SELECT * FROM capitulos ORDER BY orden ASC');
+    const capsResult = await db.query(
+      projectId
+        ? 'SELECT * FROM capitulos WHERE project_id = $1 ORDER BY orden ASC'
+        : 'SELECT * FROM capitulos ORDER BY orden ASC',
+      projectId ? [projectId] : []
+    );
     const histResult = await db.query('SELECT * FROM historial ORDER BY fecha DESC');
 
     const capitulos = capsResult.rows.map(cap => {
@@ -85,19 +91,19 @@ router.get('/capitulos', async (req, res) => {
 
 // POST: Crear un nuevo capítulo
 router.post('/capitulos', async (req, res) => {
-  const { nombre, progreso, historial } = req.body;
+  const { nombre, progreso, historial, projectId } = req.body;
+  const targetProjectId = projectId || 'project-las-delicias';
 
   try {
-    const maxOrdenRes = await db.query('SELECT MAX(orden) FROM capitulos');
+    const maxOrdenRes = await db.query('SELECT MAX(orden) FROM capitulos WHERE project_id = $1', [targetProjectId]);
     const nextOrden = (maxOrdenRes.rows[0].max !== null ? parseInt(maxOrdenRes.rows[0].max) : -1) + 1;
 
     const newCap = await db.query(
-      'INSERT INTO capitulos (nombre, progreso, orden) VALUES ($1, $2, $3) RETURNING *',
-      [nombre, progreso, nextOrden]
+      'INSERT INTO capitulos (nombre, progreso, orden, project_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nombre, progreso, nextOrden, targetProjectId]
     );
 
     const capId = newCap.rows[0].id;
-
     if (historial && historial.length > 0) {
       const h = historial[0];
       await db.query(
@@ -106,7 +112,7 @@ router.post('/capitulos', async (req, res) => {
       );
     }
 
-    res.json({ success: true, id: capId });
+    res.json({ success: true, id: capId, capitulo: newCap.rows[0] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al crear capítulo' });
@@ -224,6 +230,76 @@ router.put('/usuarios', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al guardar usuarios' });
+  }
+});
+
+router.post('/usuarios', async (req, res) => {
+  const user = req.body;
+  if (!user || !user.id || !user.email || !user.username) {
+    return res.status(400).json({ error: 'Datos de usuario incompletos' });
+  }
+
+  try {
+    await db.query(
+      'INSERT INTO usuarios (id, nombre, username, email, rol, password_hash, proyecto_id, proyecto_nombre, proyecto_codigo, creado_por, creado_en) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)',
+      [
+        user.id,
+        user.nombre,
+        user.username,
+        user.email,
+        user.rol,
+        user.passwordHash,
+        user.proyectoId || '',
+        user.proyectoNombre || '',
+        user.proyectoCodigo || '',
+        user.creadoPor,
+        user.creadoEn || new Date().toISOString()
+      ]
+    );
+    res.json({ success: true, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al crear usuario' });
+  }
+});
+
+router.put('/usuarios/:id', async (req, res) => {
+  const { id } = req.params;
+  const user = req.body;
+  if (!user) {
+    return res.status(400).json({ error: 'Datos de usuario incompletos' });
+  }
+
+  try {
+    await db.query(
+      'UPDATE usuarios SET nombre = $1, username = $2, email = $3, rol = $4, password_hash = $5, proyecto_id = $6, proyecto_nombre = $7, proyecto_codigo = $8 WHERE id = $9',
+      [
+        user.nombre,
+        user.username,
+        user.email,
+        user.rol,
+        user.passwordHash,
+        user.proyectoId || '',
+        user.proyectoNombre || '',
+        user.proyectoCodigo || '',
+        id
+      ]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar usuario' });
+  }
+});
+
+router.delete('/usuarios/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM usuarios WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar usuario' });
   }
 });
 

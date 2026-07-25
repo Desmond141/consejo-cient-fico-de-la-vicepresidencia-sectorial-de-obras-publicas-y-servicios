@@ -2,10 +2,15 @@ let capitulos = [];
 let AVANCE_GLOBAL = 0;
 let proyectos = [];
 let proyectoActualId = null;
+let editingUserId = null;
 const SELECTED_PROJECT_KEY = 'obras_dashboard_selected_project';
 
 // URL base de la API (asume mismo host y puerto)
 const API_URL = '/api/capitulos';
+
+function createId(prefix) {
+  return `${prefix || 'id'}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 async function fetchCapitulos() {
   const project = getSelectedProject();
@@ -18,20 +23,23 @@ async function fetchCapitulos() {
     ? window.DashboardData.getProjectChapters(project.id)
     : [];
 
-  if (project.id === 'project-las-delicias' && (!Array.isArray(storedChapters) || storedChapters.length === 0)) {
-    try {
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error('Error en API');
-      const data = await res.json();
-      capitulos = Array.isArray(data) ? data : [];
+  const apiUrl = `${API_URL}?projectId=${encodeURIComponent(project.id)}`;
+  try {
+    const res = await fetch(apiUrl);
+    if (!res.ok) throw new Error('Error en API');
+    const data = await res.json();
+    const serverChapters = Array.isArray(data) ? data : [];
+
+    if (serverChapters.length > 0 || !Array.isArray(storedChapters) || storedChapters.length === 0) {
+      capitulos = serverChapters;
       if (window.DashboardData && typeof window.DashboardData.saveProjectChapters === 'function') {
         window.DashboardData.saveProjectChapters(project.id, capitulos);
       }
-    } catch (err) {
-      console.error('No se pudo cargar de la DB, usando fallback local.', err);
-      capitulos = Array.isArray(storedChapters) ? storedChapters : [];
+    } else {
+      capitulos = storedChapters;
     }
-  } else {
+  } catch (err) {
+    console.error('No se pudo cargar de la DB, usando fallback local.', err);
     capitulos = Array.isArray(storedChapters) ? storedChapters : [];
   }
 
@@ -88,6 +96,7 @@ function renderProjectContext() {
 
 async function loadProjectView() {
   await fetchCapitulos();
+  poblarSelectCapitulos();
   AVANCE_GLOBAL = calcularAvanceGlobal();
   actualizarContadoresDinamicos();
   renderGraficoDashboard();
@@ -572,6 +581,68 @@ function renderProjectCards() {
   projectList.innerHTML = cards || '<p class="text-sm text-slate-500">No hay proyectos registrados todavía.</p>';
 }
 
+function resetUserForm() {
+  editingUserId = null;
+  if (!formCrearUsuario) return;
+  const submitButton = formCrearUsuario.querySelector('button[type="submit"]');
+  const cancelButton = document.getElementById('btn-cancelar-edicion');
+  const notice = document.getElementById('edit-user-notice');
+
+  formCrearUsuario.reset();
+  if (submitButton) submitButton.textContent = 'Crear usuario';
+  if (cancelButton) cancelButton.classList.add('hidden');
+  if (notice) notice.textContent = '';
+}
+
+function populateUserFormForEdit(user) {
+  if (!formCrearUsuario || !user) return;
+  editingUserId = user.id;
+
+  document.getElementById('input-usuario-nombre').value = user.nombre || '';
+  document.getElementById('input-usuario-username').value = user.username || '';
+  document.getElementById('input-usuario-email').value = user.email || '';
+  document.getElementById('input-usuario-password').value = '';
+  document.getElementById('select-usuario-rol').value = user.rol || 'Usuario';
+  document.getElementById('select-usuario-proyecto').value = user.proyectoId || '';
+
+  const submitButton = formCrearUsuario.querySelector('button[type="submit"]');
+  const cancelButton = document.getElementById('btn-cancelar-edicion');
+  const notice = document.getElementById('edit-user-notice');
+
+  if (submitButton) submitButton.textContent = 'Guardar cambios';
+  if (cancelButton) cancelButton.classList.remove('hidden');
+  if (notice) notice.textContent = `Editando usuario: ${user.username}`;
+}
+
+function handleUserListClick(event) {
+  const editButton = event.target.closest('[data-action="edit-user"]');
+  const deleteButton = event.target.closest('[data-action="delete-user"]');
+  if (!editButton && !deleteButton) return;
+
+  const userId = (editButton || deleteButton).dataset.userId;
+  if (!userId) return;
+
+  if (editButton) {
+    const user = window.DashboardData && typeof window.DashboardData.getUsers === 'function'
+      ? window.DashboardData.getUsers().find(item => item.id === userId)
+      : null;
+    if (user) {
+      populateUserFormForEdit(user);
+    }
+    return;
+  }
+
+  if (deleteButton) {
+    if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+    if (window.DashboardData && typeof window.DashboardData.deleteUser === 'function') {
+      window.DashboardData.deleteUser(userId);
+      renderUserCards();
+      poblarSelectProyectosUsuario();
+      alert('Usuario eliminado correctamente.');
+    }
+  }
+}
+
 function renderUserCards() {
   const userList = document.getElementById('user-list');
   if (!userList) return;
@@ -588,6 +659,10 @@ function renderUserCards() {
       <div class="mt-3 text-[11px] text-slate-500 space-y-1">
         <p>${user.proyectoNombre ? 'Proyecto: ' + user.proyectoNombre : 'Sin proyecto asignado'}</p>
         ${user.proyectoCodigo ? `<p>Código del proyecto: ${user.proyectoCodigo}</p>` : ''}
+      </div>
+      <div class="mt-4 flex flex-wrap gap-2">
+        <button type="button" data-action="edit-user" data-user-id="${user.id}" class="rounded-xl bg-slate-800/80 border border-violet-500/20 px-3 py-2 text-xs font-semibold text-violet-200 hover:bg-violet-500/10 transition">Editar</button>
+        <button type="button" data-action="delete-user" data-user-id="${user.id}" class="rounded-xl bg-rose-800/80 border border-rose-500/20 px-3 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 transition">Eliminar</button>
       </div>
     </div>
   `).join('');
@@ -697,6 +772,8 @@ const formEliminarProyecto = document.getElementById('form-eliminar-proyecto');
 const selectUsuarioProyecto = document.getElementById('select-usuario-proyecto');
 const selectEliminarProyecto = document.getElementById('select-eliminar-proyecto');
 const deleteProjectMessage = document.getElementById('delete-project-message');
+const btnCancelarEdicion = document.getElementById('btn-cancelar-edicion');
+const userList = document.getElementById('user-list');
 
 function poblarSelectCapitulos() {
   if (selectCapitulo) {
@@ -736,20 +813,13 @@ if (selectCapitulo && containerNuevoCapitulo) {
   });
 }
 
-function poblarSelectProyectosUsuario() {
-  if (!selectUsuarioProyecto) return;
-  syncProjectsFromDataLayer();
-  selectUsuarioProyecto.innerHTML = '';
-  const defaultOption = document.createElement('option');
-  defaultOption.value = '';
-  defaultOption.textContent = 'Sin proyecto asignado';
-  selectUsuarioProyecto.appendChild(defaultOption);
+if (userList) {
+  userList.addEventListener('click', handleUserListClick);
+}
 
-  proyectos.forEach(project => {
-    const option = document.createElement('option');
-    option.value = project.id;
-    option.textContent = `${project.nombre} (${project.codigo})`;
-    selectUsuarioProyecto.appendChild(option);
+if (btnCancelarEdicion) {
+  btnCancelarEdicion.addEventListener('click', () => {
+    resetUserForm();
   });
 }
 
@@ -855,6 +925,7 @@ if (formAgregarDato) {
     e.preventDefault();
     const selectedProject = getSelectedProject();
     const valorSeleccionado = selectCapitulo.value;
+    const nombreNuevo = inputNuevoCapitulo.value.trim();
     const progresoIngresado = parseFloat(document.getElementById('input-progreso').value);
     const descripcionIngresada = document.getElementById('input-descripcion').value.trim();
     const fechaActual = new Date().toISOString();
@@ -864,78 +935,85 @@ if (formAgregarDato) {
         throw new Error('No hay proyecto seleccionado.');
       }
 
-      if (selectedProject.id === 'project-las-delicias') {
-        if (valorSeleccionado === 'nuevo') {
-          const nombreNuevo = inputNuevoCapitulo.value.trim();
-          if (nombreNuevo) {
-            await fetch(API_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                nombre: nombreNuevo,
-                progreso: progresoIngresado,
-                historial: [{
-                  fecha: fechaActual,
-                  descripcion: descripcionIngresada,
-                  progresoAnterior: 0,
-                  progresoNuevo: progresoIngresado
-                }]
-              })
-            });
+      if (valorSeleccionado === 'nuevo' && !nombreNuevo) {
+        throw new Error('El nombre del capítulo es requerido.');
+      }
+
+      if (!descripcionIngresada) {
+        throw new Error('La descripción es requerida.');
+      }
+
+      if (Number.isNaN(progresoIngresado) || progresoIngresado < 0 || progresoIngresado > 100) {
+        throw new Error('El progreso debe ser un número entre 0 y 100.');
+      }
+
+      const targetProjectId = selectedProject.id;
+      const chapterIndex = valorSeleccionado === 'nuevo' ? -1 : parseInt(valorSeleccionado, 10);
+      const progresoAnterior = chapterIndex >= 0 && capitulos[chapterIndex] ? capitulos[chapterIndex].progreso || 0 : 0;
+      const historyEntry = {
+        fecha: fechaActual,
+        descripcion: descripcionIngresada,
+        progresoAnterior,
+        progresoNuevo: progresoIngresado
+      };
+
+      if (valorSeleccionado === 'nuevo') {
+        const payload = {
+          nombre: nombreNuevo,
+          progreso: progresoIngresado,
+          projectId: targetProjectId,
+          historial: [historyEntry]
+        };
+
+        try {
+          const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) {
+            throw new Error('Error en la API al crear capítulo');
           }
-        } else {
-          const index = parseInt(valorSeleccionado);
-          if (!isNaN(index) && capitulos[index]) {
-            const capId = capitulos[index].id;
-            const progresoViejo = capitulos[index].progreso;
-            await fetch(`${API_URL}/${capId}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                progreso: progresoIngresado,
-                nuevoHistorial: {
-                  fecha: fechaActual,
-                  descripcion: descripcionIngresada,
-                  progresoAnterior: progresoViejo,
-                  progresoNuevo: progresoIngresado
-                }
-              })
-            });
-          }
+        } catch (apiError) {
+          console.warn('No se pudo guardar capítulo en servidor, guardando localmente.', apiError);
+          const chapters = window.DashboardData.getProjectChapters(targetProjectId) || [];
+          chapters.push({
+            id: createId('cap'),
+            nombre: nombreNuevo,
+            progreso: progresoIngresado,
+            historial: [historyEntry]
+          });
+          window.DashboardData.saveProjectChapters(targetProjectId, chapters);
         }
       } else {
-        const chapters = window.DashboardData.getProjectChapters(selectedProject.id) || [];
-        if (valorSeleccionado === 'nuevo') {
-          const nombreNuevo = inputNuevoCapitulo.value.trim();
-          if (nombreNuevo) {
-            const newChapter = {
-              id: createId('cap'),
-              nombre: nombreNuevo,
-              progreso: progresoIngresado,
-              historial: [{
-                fecha: fechaActual,
-                descripcion: descripcionIngresada,
-                progresoAnterior: 0,
-                progresoNuevo: progresoIngresado
-              }]
-            };
-            chapters.push(newChapter);
-            window.DashboardData.saveProjectChapters(selectedProject.id, chapters);
+        if (isNaN(chapterIndex) || !capitulos[chapterIndex]) {
+          throw new Error('Capítulo inválido seleccionado.');
+        }
+
+        const capId = capitulos[chapterIndex].id;
+        const updatePayload = {
+          progreso: progresoIngresado,
+          nuevoHistorial: historyEntry
+        };
+
+        try {
+          const res = await fetch(`${API_URL}/${encodeURIComponent(capId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatePayload)
+          });
+          if (!res.ok) {
+            throw new Error('Error en la API al actualizar capítulo');
           }
-        } else {
-          const index = parseInt(valorSeleccionado);
-          if (!isNaN(index) && chapters[index]) {
-            const chapter = chapters[index];
-            const progresoViejo = chapter.progreso || 0;
+        } catch (apiError) {
+          console.warn('No se pudo actualizar capítulo en servidor, guardando localmente.', apiError);
+          const chapters = window.DashboardData.getProjectChapters(targetProjectId) || [];
+          if (chapters[chapterIndex]) {
+            const chapter = chapters[chapterIndex];
             chapter.progreso = progresoIngresado;
             chapter.historial = chapter.historial || [];
-            chapter.historial.push({
-              fecha: fechaActual,
-              descripcion: descripcionIngresada,
-              progresoAnterior: progresoViejo,
-              progresoNuevo: progresoIngresado
-            });
-            window.DashboardData.saveProjectChapters(selectedProject.id, chapters);
+            chapter.historial.push(historyEntry);
+            window.DashboardData.saveProjectChapters(targetProjectId, chapters);
           }
         }
       }
@@ -996,11 +1074,12 @@ if (formCrearUsuario) {
     }
 
     const selectedProject = proyectos.find(project => project.id === selectUsuarioProyecto.value);
+    const passwordValue = document.getElementById('input-usuario-password').value;
     const userData = {
       nombre: document.getElementById('input-usuario-nombre').value.trim(),
       username: document.getElementById('input-usuario-username').value.trim(),
       email: document.getElementById('input-usuario-email').value.trim(),
-      password: document.getElementById('input-usuario-password').value,
+      password: passwordValue,
       rol: document.getElementById('select-usuario-rol').value,
       proyectoId: selectedProject ? selectedProject.id : '',
       proyectoNombre: selectedProject ? selectedProject.nombre : '',
@@ -1008,13 +1087,39 @@ if (formCrearUsuario) {
       creadoPor: session && session.nombre ? session.nombre : 'Superadmin'
     };
 
-    if (!userData.nombre || !userData.username || !userData.email || !userData.password) return;
+    if (!userData.nombre || !userData.username || !userData.email || (!editingUserId && !userData.password)) return;
 
-    window.DashboardData.createUser(userData);
-    renderUserCards();
-    formCrearUsuario.reset();
-    poblarSelectProyectosUsuario();
-    alert(`Usuario creado: ${userData.username}`);
+    if (editingUserId) {
+      const payload = {
+        nombre: userData.nombre,
+        username: userData.username,
+        email: userData.email,
+        rol: userData.rol,
+        proyectoId: userData.proyectoId,
+        proyectoNombre: userData.proyectoNombre,
+        proyectoCodigo: userData.proyectoCodigo,
+        passwordHash: passwordValue ? btoa(passwordValue) : undefined
+      };
+
+      window.DashboardData.updateUser(editingUserId, payload);
+      resetUserForm();
+      renderUserCards();
+      poblarSelectProyectosUsuario();
+      alert(`Usuario actualizado: ${userData.username}`);
+    } else {
+      window.DashboardData.createUser(userData);
+      renderUserCards();
+      formCrearUsuario.reset();
+      poblarSelectProyectosUsuario();
+      alert(`Usuario creado: ${userData.username}`);
+    }
+  });
+}
+
+if (btnCancelarEdicion) {
+  btnCancelarEdicion.addEventListener('click', (e) => {
+    e.preventDefault();
+    resetUserForm();
   });
 }
 

@@ -80,9 +80,18 @@
     const errorEl = document.getElementById('login-error');
     if (!form) return;
 
-    form.addEventListener('submit', event => {
+    form.addEventListener('submit', async event => {
       event.preventDefault();
       showAuthStatus('Validando credenciales de Usuario');
+
+      if (window.DashboardData && typeof window.DashboardData.hydrateRemoteData === 'function') {
+        try {
+          await window.DashboardData.hydrateRemoteData();
+        } catch (error) {
+          console.warn('No se pudo sincronizar usuarios remotos antes del login:', error);
+        }
+      }
+
       const credential = form.email.value.trim();
       const password = form.password.value;
       const admin = window.SuperadminsDB.validateCredentials(credential, password);

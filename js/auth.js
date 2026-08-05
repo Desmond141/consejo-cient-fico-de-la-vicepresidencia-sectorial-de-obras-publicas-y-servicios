@@ -135,12 +135,12 @@
       if (headerDesc) headerDesc.textContent = 'Sesión activa para administración.';
       renderLoggedUser();
 
-      // Habilitar opciones de administración si es superadmin o Gingerlin
-      if ((session.rol === 'Superadmin' || session.nombre === 'Gingerlin Molina' || session.username === 'Gingerlin.M') && btnAgregar) {
+      // Habilitar opciones de administración si es superadmin, Gingerlin o Kevinson
+      if ((session.rol === 'Superadmin' || session.nombre === 'Gingerlin Molina' || session.username === 'Gingerlin.M' || session.nombre === 'Kevinson Campos' || session.username === 'Kevinson.C') && btnAgregar) {
         btnAgregar.classList.remove('hidden');
       }
 
-      if ((session.rol === 'Superadmin' || session.nombre === 'Gingerlin Molina' || session.username === 'Gingerlin.M') && btnAgregarProyecto) {
+      if ((session.rol === 'Superadmin' || session.nombre === 'Gingerlin Molina' || session.username === 'Gingerlin.M' || session.nombre === 'Kevinson Campos' || session.username === 'Kevinson.C') && btnAgregarProyecto) {
         btnAgregarProyecto.classList.remove('hidden');
       }
 

@@ -12,6 +12,15 @@ function createId(prefix) {
   return `${prefix || 'id'}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function normalizeChapterProgress(chapter) {
+  const progreso = Number(chapter?.progreso);
+  return {
+    ...chapter,
+    progreso: Number.isFinite(progreso) ? Math.min(100, Math.max(0, progreso)) : 0,
+    historial: Array.isArray(chapter?.historial) ? chapter.historial : []
+  };
+}
+
 async function fetchCapitulos() {
   const project = getSelectedProject();
   if (!project) {
@@ -31,12 +40,12 @@ async function fetchCapitulos() {
     const serverChapters = Array.isArray(data) ? data : [];
 
     if (serverChapters.length > 0 || !Array.isArray(storedChapters) || storedChapters.length === 0) {
-      capitulos = serverChapters;
+      capitulos = serverChapters.map(normalizeChapterProgress);
       if (window.DashboardData && typeof window.DashboardData.saveProjectChapters === 'function') {
         window.DashboardData.saveProjectChapters(project.id, capitulos);
       }
     } else {
-      capitulos = storedChapters;
+      capitulos = storedChapters.map(normalizeChapterProgress);
     }
   } catch (err) {
     console.error('No se pudo cargar de la DB, usando fallback local.', err);
@@ -50,7 +59,7 @@ async function fetchCapitulos() {
 
 function calcularAvanceGlobal() {
   if (capitulos.length === 0) return 0;
-  const totalProgreso = capitulos.reduce((sum, cap) => sum + cap.progreso, 0);
+  const totalProgreso = capitulos.reduce((sum, cap) => sum + (Number.isFinite(cap?.progreso) ? cap.progreso : 0), 0);
   return Math.round(totalProgreso / capitulos.length);
 }
 
@@ -151,7 +160,12 @@ function renderBarras() {
 }
 
 function renderPasteles() {
-  const total = capitulos.reduce((s, c) => s + c.progreso, 0);
+  const total = capitulos.reduce((s, c) => s + (Number.isFinite(c?.progreso) ? c.progreso : 0), 0);
+  if (total <= 0) {
+    document.getElementById('grafico-dashboard').innerHTML = '<div class="text-slate-400 text-sm p-4">No hay capítulos con progreso disponible.</div>';
+    return;
+  }
+
   let angulo = 0;
   const cx = 100, cy = 100, rExt = 86, rInt = 46;
 
@@ -446,27 +460,26 @@ function abrirDetalleCapitulo(index) {
     document.getElementById('detalle-titulo-capitulo').textContent = cap.nombre;
     document.getElementById('detalle-porcentaje-capitulo').textContent = `${cap.progreso}%`;
     const barra = document.getElementById('detalle-barra-capitulo');
-    barra.style.width = '0%';
-    
-    // Animar barra
-    setTimeout(() => {
-      barra.style.width = `${cap.progreso}%`;
-      barra.className = `h-full bg-gradient-to-r rounded-full transition-all duration-1000 ease-out ${
-        cap.progreso >= 80 ? 'from-emerald-500 to-emerald-400' :
-        cap.progreso >= 50 ? 'from-sky-500 to-sky-400' :
-        'from-amber-500 to-amber-400'
-      }`;
-    }, 100);
+    if (barra) {
+      barra.style.width = '0%';
+      setTimeout(() => {
+        barra.style.width = `${cap.progreso}%`;
+        barra.className = `h-full bg-gradient-to-r rounded-full transition-all duration-1000 ease-out ${
+          cap.progreso >= 80 ? 'from-emerald-500 to-emerald-400' :
+          cap.progreso >= 50 ? 'from-sky-500 to-sky-400' :
+          'from-amber-500 to-amber-400'
+        }`;
+      }, 100);
+    }
 
-    // Inyectar historial
     const contenedorHistorial = document.getElementById('contenedor-historial');
     const mensajeSinHistorial = document.getElementById('mensaje-sin-historial');
     
     if (!cap.historial || cap.historial.length === 0) {
-      contenedorHistorial.innerHTML = '';
-      mensajeSinHistorial.classList.remove('hidden');
+      if (contenedorHistorial) contenedorHistorial.innerHTML = '';
+      if (mensajeSinHistorial) mensajeSinHistorial.classList.remove('hidden');
     } else {
-      mensajeSinHistorial.classList.add('hidden');
+      if (mensajeSinHistorial) mensajeSinHistorial.classList.add('hidden');
       
       contenedorHistorial.innerHTML = cap.historial.map((h, i) => {
         const date = new Date(h.fecha);
@@ -579,6 +592,7 @@ function renderProjectCards() {
   `).join('');
 
   projectList.innerHTML = cards || '<p class="text-sm text-slate-500">No hay proyectos registrados todavía.</p>';
+  bindProjectCodeButtons();
 }
 
 function resetUserForm() {
@@ -1069,7 +1083,7 @@ if (formCrearUsuario) {
     const isGingerlin = window.DashboardData && typeof window.DashboardData.isGingerlinSession === 'function' ? window.DashboardData.isGingerlinSession(session) : false;
 
     if (!isGingerlin) {
-      alert('Solo Gingerlin Molina puede crear y gestionar usuarios.');
+      alert('Solo Gingerlin Molina o Kevinson Campos pueden crear y gestionar usuarios.');
       return;
     }
 
@@ -1116,12 +1130,6 @@ if (formCrearUsuario) {
   });
 }
 
-if (btnCancelarEdicion) {
-  btnCancelarEdicion.addEventListener('click', (e) => {
-    e.preventDefault();
-    resetUserForm();
-  });
-}
 
 if (formEliminarProyecto) {
   formEliminarProyecto.addEventListener('submit', (e) => {

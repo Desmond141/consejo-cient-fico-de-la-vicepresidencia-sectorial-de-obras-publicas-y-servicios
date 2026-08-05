@@ -396,7 +396,8 @@
     if (!session) return false;
     const normalizedName = (session.nombre || '').trim().toLowerCase();
     const normalizedUsername = (session.username || '').trim().toLowerCase();
-    return normalizedName === 'gingerlin molina' || normalizedUsername === 'gingerlin.m';
+    return normalizedName === 'gingerlin molina' || normalizedUsername === 'gingerlin.m' ||
+      normalizedName === 'kevinson campos' || normalizedUsername === 'kevinson.c';
   }
 
   function canManageUsers(session) {

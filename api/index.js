@@ -303,8 +303,7 @@ router.delete('/usuarios/:id', async (req, res) => {
   }
 });
 
-// Montar router en diferentes prefijos por si Vercel altera el req.url
+// Montar router solo en /api para que las llamadas del frontend a /api/* se resuelvan correctamente
 app.use('/api', router);
-app.use('/', router);
 
 module.exports = app;

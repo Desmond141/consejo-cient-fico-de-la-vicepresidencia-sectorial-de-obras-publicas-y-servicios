@@ -107,10 +107,17 @@
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(projects)
-    }).catch(error => {
-      console.warn('No fue posible sincronizar proyectos con el servidor:', error);
-      return null;
-    });
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Sync projects failed: ${response.status} ${response.statusText}`);
+        }
+        return projects;
+      })
+      .catch(error => {
+        console.warn('No fue posible sincronizar proyectos con el servidor:', error);
+        return projects;
+      });
   }
 
   function syncUsersToServer(users) {
@@ -119,10 +126,17 @@
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(users)
-    }).catch(error => {
-      console.warn('No fue posible sincronizar usuarios con el servidor:', error);
-      return null;
-    });
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Sync users failed: ${response.status} ${response.statusText}`);
+        }
+        return users;
+      })
+      .catch(error => {
+        console.warn('No fue posible sincronizar usuarios con el servidor:', error);
+        return users;
+      });
   }
 
   function hydrateProjectsFromServer() {

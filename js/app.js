@@ -1052,7 +1052,7 @@ if (formAgregarDato) {
 }
 
 if (formAgregarProyecto) {
-  formAgregarProyecto.addEventListener('submit', (e) => {
+  formAgregarProyecto.addEventListener('submit', async (e) => {
     e.preventDefault();
     const session = window.Auth && typeof window.Auth.getSession === 'function' ? window.Auth.getSession() : null;
     const projectData = {
@@ -1062,15 +1062,15 @@ if (formAgregarProyecto) {
       creadoPor: session && session.nombre ? session.nombre : 'Superadmin'
     };
 
-    if (!projectData.nombre || !projectData.descripcion) return;
+    if (!projectData.nombre || !projectData.descripcion) {
+      alert('El nombre y la descripción del proyecto son obligatorios.');
+      return;
+    }
 
     const created = window.DashboardData.createProject(projectData);
     syncProjectsFromDataLayer();
-    renderProjectCards();
-    poblarSelectProyectosUsuario();
-    poblarSelectProyectosEliminar();
-    poblarProjectSwitcher();
     setSelectedProject(created.id);
+    await loadProjectView();
     formAgregarProyecto.reset();
     alert(`Proyecto creado: ${created.nombre}`);
   });
@@ -1164,18 +1164,22 @@ if (formEliminarDato) {
     if (!selectedProject) return;
 
     try {
-      if (selectedProject.id === 'project-las-delicias') {
-        if (!isNaN(index) && capitulos[index]) {
-          const capId = capitulos[index].id;
-          await fetch(`${API_URL}/${capId}`, {
+      if (!isNaN(index) && capitulos[index]) {
+        const capId = capitulos[index].id;
+        try {
+          const res = await fetch(`${API_URL}/${encodeURIComponent(capId)}`, {
             method: 'DELETE'
           });
-        }
-      } else {
-        const chapters = window.DashboardData.getProjectChapters(selectedProject.id) || [];
-        if (!isNaN(index) && chapters[index]) {
-          chapters.splice(index, 1);
-          window.DashboardData.saveProjectChapters(selectedProject.id, chapters);
+          if (!res.ok) {
+            throw new Error(`Error en la API al eliminar capítulo: ${res.status}`);
+          }
+        } catch (apiError) {
+          console.warn('No se pudo eliminar capítulo del servidor, eliminando localmente si es posible.', apiError);
+          const chapters = window.DashboardData.getProjectChapters(selectedProject.id) || [];
+          if (!isNaN(index) && chapters[index]) {
+            chapters.splice(index, 1);
+            window.DashboardData.saveProjectChapters(selectedProject.id, chapters);
+          }
         }
       }
 

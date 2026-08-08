@@ -147,7 +147,7 @@
     hasHydratedProjects = true;
     return fetch(PROJECTS_API_URL)
       .then(response => {
-        if (!response.ok) throw new Error('No se pudo leer proyectos del servidor');
+        if (!response.ok) throw new Error(`No se pudo leer proyectos del servidor: ${response.status}`);
         return response.json();
       })
       .then(data => {
@@ -175,7 +175,7 @@
     hasHydratedUsers = true;
     return fetch(USERS_API_URL)
       .then(response => {
-        if (!response.ok) throw new Error('No se pudo leer usuarios del servidor');
+        if (!response.ok) throw new Error(`No se pudo leer usuarios del servidor: ${response.status}`);
         return response.json();
       })
       .then(data => {
@@ -308,8 +308,10 @@
   function saveProjects(projects) {
     const normalized = ensureProjectCodes(Array.isArray(projects) ? projects : []);
     persistProjectsToStorage(normalized);
-    syncProjectsToServer(normalized);
-    return normalized;
+    return syncProjectsToServer(normalized).catch(error => {
+      console.warn('Error sincronizando proyectos con el servidor:', error);
+      return normalized;
+    });
   }
 
   function createProject(payload) {
@@ -326,8 +328,13 @@
     };
 
     projects.push(project);
-    saveProjects(projects);
-    return project;
+    return saveProjects(projects).then(() => project);
+  }
+
+  function deleteProject(projectId) {
+    const projects = getProjects().filter(project => project.id !== projectId);
+    const result = projects;
+    return saveProjects(projects).then(() => result);
   }
 
   function getProjectById(projectId) {
@@ -381,8 +388,10 @@
   function saveUsers(users) {
     const normalized = Array.isArray(users) ? users : [];
     persistUsersToStorage(normalized);
-    syncUsersToServer(normalized);
-    return normalized;
+    return syncUsersToServer(normalized).catch(error => {
+      console.warn('Error sincronizando usuarios con el servidor:', error);
+      return normalized;
+    });
   }
 
   function getProjectNameById(projectId) {
@@ -419,8 +428,7 @@
   }
 
   function bootstrapRemoteSync() {
-    hydrateProjectsFromServer();
-    hydrateUsersFromServer();
+    return Promise.all([hydrateProjectsFromServer(), hydrateUsersFromServer()]);
   }
 
   if (document.readyState === 'loading') {

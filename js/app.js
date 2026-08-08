@@ -550,7 +550,7 @@ function renderProjectCards() {
   if (!projectList) return;
 
   const cards = proyectos.map(project => `
-    <div class="rounded-2xl border border-slate-700/60 bg-slate-900/50 p-4">
+    <div data-project-id="${project.id}" class="project-card group rounded-2xl border border-slate-700/60 bg-slate-900/50 p-4 cursor-pointer hover:border-sky-400/70 transition">
       <div class="flex items-center justify-between mb-3 gap-3">
         <div>
           <h4 class="text-sm font-semibold text-slate-100">${project.nombre}</h4>
@@ -559,17 +559,26 @@ function renderProjectCards() {
         <span class="text-xs px-2 py-1 rounded-full ${project.progreso >= 100 ? 'bg-emerald-500/15 text-emerald-300' : 'bg-sky-500/15 text-sky-300'}">${project.progreso}%</span>
       </div>
       <p class="text-sm text-slate-400 mb-3">${project.descripcion || 'Sin descripción'}</p>
-      <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+      <div class="w-full h-2 rounded-full bg-slate-800 overflow-hidden mb-4">
         <div class="h-full rounded-full" style="width:${Math.min(100, Math.max(0, project.progreso))}%; background: linear-gradient(90deg, #38bdf8, #0ea5e9);"></div>
       </div>
-      <div class="mt-3 text-[11px] text-slate-500">
+      <div class="mt-3 text-[11px] text-slate-500 space-y-1">
         <p>Creado por ${project.creadoPor || 'Superadmin'}</p>
         <p>Creado en ${new Date(project.creadoEn).toLocaleDateString('es-ES')}</p>
       </div>
+      <div class="mt-4 pt-4 border-t border-slate-700/40 text-sm text-slate-400 group-hover:text-sky-300">Ver proyecto</div>
     </div>
   `).join('');
 
   projectList.innerHTML = cards || '<p class="text-sm text-slate-500">No hay proyectos registrados todavía.</p>';
+  projectList.querySelectorAll('.project-card').forEach(card => {
+    card.addEventListener('click', async () => {
+      const projectId = card.dataset.projectId;
+      if (!projectId) return;
+      setSelectedProject(projectId);
+      await loadProjectView();
+    });
+  });
   bindProjectCodeButtons();
 }
 
@@ -662,8 +671,48 @@ function renderUserCards() {
   userList.innerHTML = cards || '<p class="text-sm text-slate-500">No hay usuarios registrados todavía.</p>';
 }
 
+function setApiConnectionStatus(message, success) {
+  const el = document.getElementById('api-connection-status');
+  if (!el) return;
+  el.textContent = message;
+  el.className = 'rounded-2xl border px-4 py-3 text-sm font-medium';
+  if (success) {
+    el.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-200');
+  } else {
+    el.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-200');
+  }
+  el.classList.remove('hidden');
+}
+
+async function checkApiConnection() {
+  try {
+    const response = await fetch('/api/test');
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.status !== 'ok' || !data.api) {
+      throw new Error(data.message || 'Respuesta de API inválida');
+    }
+    setApiConnectionStatus('Conexión con API establecida correctamente.', true);
+    return true;
+  } catch (error) {
+    console.error('Error de conexión con la API:', error);
+    setApiConnectionStatus('No se pudo conectar con el servidor API. Revisa la configuración y el despliegue.', false);
+    return false;
+  }
+}
+
 async function initApp() {
   loadSelectedProjectId();
+  await checkApiConnection();
+  if (window.DashboardData && typeof window.DashboardData.hydrateRemoteData === 'function') {
+    try {
+      await window.DashboardData.hydrateRemoteData();
+    } catch (err) {
+      console.warn('No se pudo sincronizar datos remotos antes de cargar la vista:', err);
+    }
+  }
   await loadProjectView();
   if (typeof setFechaActual === 'function') {
     setFechaActual();
@@ -1045,12 +1094,17 @@ if (formAgregarProyecto) {
       return;
     }
 
-    const created = window.DashboardData.createProject(projectData);
-    syncProjectsFromDataLayer();
-    setSelectedProject(created.id);
-    await loadProjectView();
-    formAgregarProyecto.reset();
-    alert(`Proyecto creado: ${created.nombre}`);
+    try {
+      const created = await window.DashboardData.createProject(projectData);
+      syncProjectsFromDataLayer();
+      setSelectedProject(created.id);
+      await loadProjectView();
+      formAgregarProyecto.reset();
+      alert(`Proyecto creado: ${created.nombre}`);
+    } catch (error) {
+      console.error('Error al crear proyecto:', error);
+      alert('No se pudo crear el proyecto. Revisa la conexión con el servidor.');
+    }
   });
 }
 
@@ -1110,23 +1164,28 @@ if (formCrearUsuario) {
 
 
 if (formEliminarProyecto) {
-  formEliminarProyecto.addEventListener('submit', (e) => {
+  formEliminarProyecto.addEventListener('submit', async (e) => {
     e.preventDefault();
     const projectId = selectEliminarProyecto.value;
     if (!projectId) return;
 
-    window.DashboardData.deleteProject(projectId);
-    window.DashboardData.clearProjectFromUsers(projectId);
-    syncProjectsFromDataLayer();
-    renderProjectCards();
-    poblarSelectProyectosUsuario();
-    poblarSelectProyectosEliminar();
-    poblarProjectSwitcher();
+    try {
+      await window.DashboardData.deleteProject(projectId);
+      window.DashboardData.clearProjectFromUsers(projectId);
+      syncProjectsFromDataLayer();
+      renderProjectCards();
+      poblarSelectProyectosUsuario();
+      poblarSelectProyectosEliminar();
+      poblarProjectSwitcher();
 
-    if (deleteProjectMessage) {
-      deleteProjectMessage.textContent = 'Proyecto eliminado correctamente.';
-      deleteProjectMessage.classList.remove('hidden');
-      setTimeout(() => deleteProjectMessage.classList.add('hidden'), 3000);
+      if (deleteProjectMessage) {
+        deleteProjectMessage.textContent = 'Proyecto eliminado correctamente.';
+        deleteProjectMessage.classList.remove('hidden');
+        setTimeout(() => deleteProjectMessage.classList.add('hidden'), 3000);
+      }
+    } catch (error) {
+      console.error('Error al eliminar proyecto:', error);
+      alert('No se pudo eliminar el proyecto. Revisa la conexión con el servidor.');
     }
   });
 }

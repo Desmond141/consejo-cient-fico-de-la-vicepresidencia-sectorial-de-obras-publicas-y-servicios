@@ -61,13 +61,33 @@ function mapUserRow(row) {
 }
 
 // GET: Prueba de conexión
-router.get('/test', (req, res) => {
-  res.json({
-    status: 'ok',
-    dbInitialized,
-    hasPostgresUrl: !!process.env.POSTGRES_URL,
-    hasDatabaseUrl: !!process.env.DATABASE_URL
-  });
+router.get('/test', async (req, res) => {
+  try {
+    if (!dbInitialized) {
+      await db.initDB();
+      dbInitialized = true;
+    }
+    const pingResult = await db.query('SELECT 1 AS ok');
+    const dbAlive = Array.isArray(pingResult.rows) && pingResult.rows[0] && pingResult.rows[0].ok === 1;
+
+    res.json({
+      status: 'ok',
+      api: true,
+      dbInitialized,
+      dbAlive,
+      hasPostgresUrl: !!process.env.POSTGRES_URL,
+      hasDatabaseUrl: !!process.env.DATABASE_URL
+    });
+  } catch (error) {
+    console.error('Error en /api/test:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'No se pudo conectar con la base de datos',
+      hasPostgresUrl: !!process.env.POSTGRES_URL,
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      error: error.message
+    });
+  }
 });
 
 // GET: Obtener todos los capítulos con su historial
@@ -308,7 +328,8 @@ router.delete('/usuarios/:id', async (req, res) => {
   }
 });
 
-// Montar router solo en /api para que las llamadas del frontend a /api/* se resuelvan correctamente
-app.use('/api', router);
+// Montar router en la raíz del servidor.
+// En Vercel, este archivo se expone en /api, por lo que el frontend seguirá usando /api/* correctamente.
+app.use('/', router);
 
 module.exports = app;

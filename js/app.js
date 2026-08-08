@@ -302,30 +302,8 @@ function makeDraggable(element) {
 }
 
 function bindDraggables() {
-  const draggableSet = new Set();
-
-  document.querySelectorAll('.barra-progreso').forEach(bar => {
-    const rowCard = bar.closest('.bar-row-card');
-    const chartItem = bar.closest('.bar-chart-item');
-    const tableRow = bar.closest('tr');
-    const glassCard = bar.closest('.glass, .glass-strong');
-
-    if (rowCard) draggableSet.add(rowCard);
-    if (chartItem) draggableSet.add(chartItem);
-    if (tableRow) draggableSet.add(tableRow);
-    if (glassCard) draggableSet.add(glassCard);
-  });
-
-  const heroCard = document.getElementById('ring-avance')?.closest('.glass-strong');
-  if (heroCard) draggableSet.add(heroCard);
-
-  const pin2Card = document.querySelector('#vista-pin2 .glass-strong');
-  if (pin2Card) draggableSet.add(pin2Card);
-
-  draggableSet.forEach(el => {
-    el.style.zIndex = '10';
-    makeDraggable(el);
-  });
+  // Se deshabilita el arrastre de paneles para mantener la interfaz estática.
+  // No se aplica makeDraggable ni se añaden controladores de pointer.
 }
 
 function paintBarra(el, p, width) {

@@ -14,13 +14,18 @@ let dbInitPromise = null;
 app.use(async (req, res, next) => {
   if (!dbInitialized) {
     if (!dbInitPromise) {
-      dbInitPromise = db.initDB()
-        .then(() => { dbInitialized = true; })
-        .catch(err => console.error('Error inicializando BD:', err));
+      dbInitPromise = db.initDB().then(() => { dbInitialized = true; });
     }
-    await dbInitPromise;
+    try {
+      await dbInitPromise;
+      next();
+    } catch (err) {
+      console.error('Error inicializando BD:', err);
+      return res.status(500).json({ error: 'Error inicializando la base de datos' });
+    }
+  } else {
+    next();
   }
-  next();
 });
 
 // --- API ROUTES ---

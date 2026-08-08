@@ -1,15 +1,29 @@
 const { Pool } = require('pg');
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL || process.env.DATABASE_URL,
-  host: process.env.PGHOST,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  database: process.env.PGDATABASE,
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+const hasHostConfig = process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD && process.env.PGDATABASE;
+
+if (!connectionString && !hasHostConfig) {
+  throw new Error('No se ha configurado la conexión a la base de datos. Configure POSTGRES_URL o DATABASE_URL, o PGHOST/PGUSER/PGPASSWORD/PGDATABASE.');
+}
+
+const poolConfig = {
   ssl: {
     rejectUnauthorized: false
   }
-});
+};
+
+if (connectionString) {
+  poolConfig.connectionString = connectionString;
+} else {
+  poolConfig.host = process.env.PGHOST;
+  poolConfig.user = process.env.PGUSER;
+  poolConfig.password = process.env.PGPASSWORD;
+  poolConfig.database = process.env.PGDATABASE;
+  if (process.env.PGPORT) poolConfig.port = Number(process.env.PGPORT);
+}
+
+const pool = new Pool(poolConfig);
 
 async function initDB() {
   const client = await pool.connect();
@@ -111,6 +125,7 @@ async function initDB() {
     console.log('Base de datos inicializada con éxito.');
   } catch (err) {
     console.error('Error inicializando base de datos:', err);
+    throw err;
   } finally {
     client.release();
   }

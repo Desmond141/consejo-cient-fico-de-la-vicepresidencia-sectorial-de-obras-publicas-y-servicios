@@ -337,8 +337,7 @@ router.delete('/usuarios/:id', async (req, res) => {
   }
 });
 
-// Montar router en la raíz del servidor.
-// En Vercel, este archivo se expone en /api, por lo que el frontend seguirá usando /api/* correctamente.
-app.use('/', router);
+// Montar router en /api para que las peticiones Vercel se resuelvan correctamente.
+app.use('/api', router);
 
 module.exports = app;

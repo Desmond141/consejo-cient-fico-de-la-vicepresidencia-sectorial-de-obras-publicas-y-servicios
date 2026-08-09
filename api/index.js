@@ -60,6 +60,15 @@ function mapUserRow(row) {
   };
 }
 
+// GET: Ruta raíz de API
+router.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    api: true,
+    message: 'API activa. Usa /api/test para verificar la DB, /api/capitulos para los datos.'
+  });
+});
+
 // GET: Prueba de conexión
 router.get('/test', async (req, res) => {
   try {

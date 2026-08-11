@@ -337,8 +337,9 @@ router.delete('/usuarios/:id', async (req, res) => {
   }
 });
 
-// Montar router en la raíz. Vercel ya expone este handler en /api.
-app.use('/', router);
+// Montar router tanto en la raíz como en /api para aceptar llamadas
+// que lleguen con o sin el prefijo `/api` según cómo Vercel llame al handler.
+app.use(['/api', '/'], router);
 
 module.exports = (req, res) => {
   return app(req, res);

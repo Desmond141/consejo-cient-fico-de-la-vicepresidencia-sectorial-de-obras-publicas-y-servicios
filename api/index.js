@@ -342,5 +342,8 @@ router.delete('/usuarios/:id', async (req, res) => {
 app.use(['/api', '/'], router);
 
 module.exports = (req, res) => {
+  try {
+    console.log('[api/index] invoked', req.method, req.url);
+  } catch (e) {}
   return app(req, res);
 };

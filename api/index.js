@@ -146,6 +146,10 @@ router.post('/capitulos', async (req, res) => {
       [String(nombre).trim(), progresoNum, nextOrden, targetProjectId]
     );
 
+    try {
+      console.log('[api/capitulos] created', newCap.rows[0] && { id: newCap.rows[0].id, nombre: newCap.rows[0].nombre, project_id: newCap.rows[0].project_id });
+    } catch (e) {}
+
     const capId = newCap.rows[0].id;
     if (historial && historial.length > 0) {
       const h = historial[0];

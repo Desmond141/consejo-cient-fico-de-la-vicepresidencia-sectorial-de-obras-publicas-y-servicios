@@ -1006,6 +1006,8 @@ if (formAgregarDato) {
           historial: [historyEntry]
         };
 
+        console.log('[app] POST /api/capitulos payload:', payload);
+
         try {
           const res = await fetch(API_URL, {
             method: 'POST',
@@ -1013,8 +1015,12 @@ if (formAgregarDato) {
             body: JSON.stringify(payload)
           });
           if (!res.ok) {
-            throw new Error('Error en la API al crear capítulo');
+            const text = await res.text();
+            console.error('[app] POST /api/capitulos failed', res.status, text);
+            throw new Error(`Error en la API al crear capítulo: ${res.status}`);
           }
+          const result = await res.json();
+          console.log('[app] POST /api/capitulos success', result);
         } catch (apiError) {
           console.warn('No se pudo guardar capítulo en servidor, guardando localmente.', apiError);
           const chapters = window.DashboardData.getProjectChapters(targetProjectId) || [];

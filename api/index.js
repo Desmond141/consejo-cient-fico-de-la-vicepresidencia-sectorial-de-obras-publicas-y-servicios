@@ -125,7 +125,16 @@ router.get('/capitulos', async (req, res) => {
 
 // POST: Crear un nuevo capítulo
 router.post('/capitulos', async (req, res) => {
-  const { nombre, progreso, historial, projectId } = req.body;
+  const { nombre, progreso, historial, projectId } = req.body || {};
+  try {
+    console.log('[api/capitulos] body:', req.body);
+  } catch (e) {}
+  
+  // Validación básica
+  if (!nombre || String(nombre).trim() === '') {
+    return res.status(400).json({ error: 'El campo "nombre" es requerido' });
+  }
+  const progresoNum = Number.isFinite(Number(progreso)) ? Number(progreso) : 0;
   const targetProjectId = projectId || 'project-las-delicias';
 
   try {
@@ -134,7 +143,7 @@ router.post('/capitulos', async (req, res) => {
 
     const newCap = await db.query(
       'INSERT INTO capitulos (nombre, progreso, orden, project_id) VALUES ($1, $2, $3, $4) RETURNING *',
-      [nombre, progreso, nextOrden, targetProjectId]
+      [String(nombre).trim(), progresoNum, nextOrden, targetProjectId]
     );
 
     const capId = newCap.rows[0].id;

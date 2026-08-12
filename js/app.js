@@ -34,7 +34,7 @@ async function fetchCapitulos() {
 
   const apiUrl = `${API_URL}?projectId=${encodeURIComponent(project.id)}`;
   try {
-    const res = await fetch(apiUrl);
+    const res = await fetch(apiUrl, { cache: 'no-store' });
     if (!res.ok) throw new Error('Error en API');
     const data = await res.json();
     const serverChapters = Array.isArray(data) ? data : [];
@@ -840,6 +840,27 @@ function poblarSelectCapitulos() {
       selectCapituloEliminar.appendChild(option);
     });
   }
+}
+
+function poblarSelectProyectosUsuario() {
+  if (!selectUsuarioProyecto) return;
+  syncProjectsFromDataLayer();
+  selectUsuarioProyecto.innerHTML = '';
+
+  if (!proyectos.length) {
+    const emptyOption = document.createElement('option');
+    emptyOption.value = '';
+    emptyOption.textContent = 'No hay proyectos disponibles';
+    selectUsuarioProyecto.appendChild(emptyOption);
+    return;
+  }
+
+  proyectos.forEach(project => {
+    const option = document.createElement('option');
+    option.value = project.id;
+    option.textContent = project.nombre;
+    selectUsuarioProyecto.appendChild(option);
+  });
 }
 
 if (selectCapitulo && containerNuevoCapitulo) {

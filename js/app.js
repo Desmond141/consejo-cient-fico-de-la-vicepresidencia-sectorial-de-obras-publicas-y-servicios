@@ -21,6 +21,44 @@ function normalizeChapterProgress(chapter) {
   };
 }
 
+// Toast helper
+function showToast(message, success = true, timeout = 3500) {
+  try {
+    let toast = document.getElementById('app-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'app-toast';
+      toast.style.position = 'fixed';
+      toast.style.right = '20px';
+      toast.style.bottom = '20px';
+      toast.style.zIndex = '9999';
+      document.body.appendChild(toast);
+    }
+    const el = document.createElement('div');
+    el.textContent = message;
+    el.style.background = success ? 'rgba(16,185,129,0.95)' : 'rgba(220,38,38,0.95)';
+    el.style.color = '#fff';
+    el.style.padding = '10px 14px';
+    el.style.borderRadius = '10px';
+    el.style.boxShadow = '0 6px 18px rgba(2,6,23,0.6)';
+    el.style.marginTop = '8px';
+    el.style.fontSize = '13px';
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 220ms ease, transform 220ms ease';
+    el.style.transform = 'translateY(8px)';
+    toast.appendChild(el);
+    requestAnimationFrame(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    });
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(8px)';
+      setTimeout(() => { try { toast.removeChild(el); } catch(e){} }, 300);
+    }, timeout);
+  } catch (e) { console.warn('showToast failed', e); }
+}
+
 async function fetchCapitulos() {
   const project = getSelectedProject();
   if (!project) {
@@ -1047,10 +1085,12 @@ if (formAgregarDato) {
           if (!res.ok) {
             const text = await res.text();
             console.error('[app] POST /api/capitulos failed', res.status, text);
+            showToast('Error al guardar capítulo en el servidor', false);
             throw new Error(`Error en la API al crear capítulo: ${res.status}`);
           }
           const result = await res.json();
           console.log('[app] POST /api/capitulos success', result);
+          showToast('Capítulo guardado correctamente');
         } catch (apiError) {
           console.warn('No se pudo guardar capítulo en servidor, guardando localmente.', apiError);
           const chapters = window.DashboardData.getProjectChapters(targetProjectId) || [];

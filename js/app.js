@@ -1114,6 +1114,11 @@ if (formAgregarDato) {
         };
 
         try {
+          if (!capId) {
+            alert('Capítulo inválido o no encontrado en la vista. Recarga la página e intenta de nuevo.');
+            return;
+          }
+
           const res = await fetch(`${API_URL}/${encodeURIComponent(capId)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },

@@ -170,9 +170,21 @@ router.post('/capitulos', async (req, res) => {
 router.put('/capitulos/:id', async (req, res) => {
   const { id } = req.params;
   const { progreso, nuevoHistorial } = req.body;
-
   try {
-    await db.query('UPDATE capitulos SET progreso = $1 WHERE id = $2', [progreso, id]);
+    console.log('[api/capitulos] PUT body:', req.body);
+
+    if (progreso === undefined || progreso === null) {
+      return res.status(400).json({ error: 'El campo "progreso" es requerido' });
+    }
+    const progresoNum = Number(progreso);
+    if (!Number.isFinite(progresoNum) || progresoNum < 0 || progresoNum > 100) {
+      return res.status(400).json({ error: 'El campo "progreso" debe ser un número entre 0 y 100' });
+    }
+
+    const updateRes = await db.query('UPDATE capitulos SET progreso = $1 WHERE id = $2 RETURNING *', [progresoNum, id]);
+    if (!updateRes.rows || updateRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Capítulo no encontrado' });
+    }
 
     if (nuevoHistorial) {
       await db.query(
@@ -181,9 +193,10 @@ router.put('/capitulos/:id', async (req, res) => {
       );
     }
 
+    console.log('[api/capitulos] updated', { id, progreso: progresoNum });
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error('Error en PUT /capitulos/:id', err && err.stack ? err.stack : err);
     res.status(500).json({ error: 'Error al actualizar capítulo' });
   }
 });

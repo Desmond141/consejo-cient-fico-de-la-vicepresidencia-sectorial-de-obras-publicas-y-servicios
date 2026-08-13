@@ -829,6 +829,12 @@ function poblarSelectCapitulos() {
     optionNuevo.value = 'nuevo';
     optionNuevo.textContent = '➕ Crear nuevo capítulo...';
     selectCapitulo.appendChild(optionNuevo);
+    // Si no hay capítulos, seleccionar por defecto la opción para crear uno nuevo
+    if (capitulos.length === 0) {
+      selectCapitulo.value = 'nuevo';
+      if (containerNuevoCapitulo) containerNuevoCapitulo.classList.remove('hidden');
+      if (inputNuevoCapitulo) inputNuevoCapitulo.setAttribute('required', 'true');
+    }
   }
 
   if (selectCapituloEliminar) {
@@ -998,7 +1004,10 @@ if (formAgregarDato) {
       }
 
       if (valorSeleccionado === 'nuevo' && !nombreNuevo) {
-        throw new Error('El nombre del capítulo es requerido.');
+        // Mejor feedback al usuario: mostrar alerta y enfocar input en lugar de lanzar excepción
+        inputNuevoCapitulo.focus();
+        alert('El nombre del capítulo es requerido. Por favor ingresa un nombre antes de guardar.');
+        return;
       }
 
       if (!descripcionIngresada) {

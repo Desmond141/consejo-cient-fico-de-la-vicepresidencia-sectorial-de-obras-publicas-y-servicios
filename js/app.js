@@ -752,6 +752,12 @@ async function initApp() {
     }
   }
   await loadProjectView();
+
+  const hash = (window.location.hash || '').replace('#', '').trim();
+  if (hash === 'proyectos' || hash === 'usuarios' || hash === 'agregar') {
+    cambiarVista(hash);
+  }
+
   if (typeof setFechaActual === 'function') {
     setFechaActual();
   }
@@ -1195,8 +1201,8 @@ if (formCrearUsuario) {
     const session = window.Auth && typeof window.Auth.getSession === 'function' ? window.Auth.getSession() : null;
     const isGingerlin = window.DashboardData && typeof window.DashboardData.isGingerlinSession === 'function' ? window.DashboardData.isGingerlinSession(session) : false;
 
-    if (!isGingerlin) {
-      alert('Solo Gingerlin Molina o Kevinson Campos pueden crear y gestionar usuarios.');
+    if (!isGingerlin && !session?.rol?.toLowerCase?.() === 'programador') {
+      alert('Solo los superadmins autorizados y el programador pueden crear y gestionar usuarios.');
       return;
     }
 

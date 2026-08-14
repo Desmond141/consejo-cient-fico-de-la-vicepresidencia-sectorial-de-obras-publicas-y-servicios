@@ -2,43 +2,56 @@
 
 **Consejo Científico de la Vicepresidencia Sectorial de Obras Públicas y Servicios**
 
-Panel administrativo web para supervisar el avance de obra de la **Remodelación Integral de la Plaza Las Delicias, Caracas**. Combina una interfaz visual moderna con una capa de persistencia en backend y un flujo básico de gestión de usuarios y proyectos.
+Panel administrativo web para supervisar el avance de obra de la **Remodelación Integral de la Plaza Las Delicias, Caracas**. El proyecto ha evolucionado desde una vista estática hacia un dashboard funcional con autenticación, gestión de proyectos, control de capítulos, administración de usuarios y persistencia real en base de datos.
 
 ---
 
 ## Tabla de contenidos
 
-1. [Descripción General](#descripción-general)
-2. [Tecnologías](#tecnologías)
-3. [Arquitectura](#arquitectura)
-4. [Estructura del Proyecto](#estructura-del-proyecto)
-5. [Instalación y ejecución](#instalación-y-ejecución)
-6. [Autenticación y permisos](#autenticación-y-permisos)
-7. [Gestión de proyectos y capítulos](#gestión-de-proyectos-y-capítulos)
-8. [Gestión de usuarios](#gestión-de-usuarios)
-9. [Persistencia y sincronización](#persistencia-y-sincronización)
-10. [Páginas principales](#páginas-principales)
-11. [Mejoras futuras](#mejoras-futuras)
+1. [Descripción general](#descripción-general)
+2. [Cambios funcionales implementados](#cambios-funcionales-implementados)
+3. [Tecnologías](#tecnologías)
+4. [Arquitectura del proyecto](#arquitectura-del-proyecto)
+5. [Estructura de carpetas](#estructura-de-carpetas)
+6. [Instalación y ejecución](#instalación-y-ejecución)
+7. [Autenticación y permisos](#autenticación-y-permisos)
+8. [Gestión de proyectos y capítulos](#gestión-de-proyectos-y-capítulos)
+9. [Gestión de usuarios](#gestión-de-usuarios)
+10. [Persistencia y sincronización](#persistencia-y-sincronización)
+11. [Páginas principales](#páginas-principales)
+12. [Estado actual](#estado-actual)
 
 ---
 
-## Descripción General
+## Descripción general
 
-Este proyecto ofrece un dashboard para visualizar el estado de avance de obras y gestionar su información desde un panel administrativo.
+Este dashboard permite:
 
-El frontend muestra:
+- visualizar el avance global de la obra;
+- consultar progreso por capítulo, fase o actividad;
+- seleccionar un proyecto activo desde un menú persistido;
+- registrar cambios de avance con historial;
+- gestionar usuarios y permisos desde la misma aplicación;
+- mantener los datos sincronizados entre `localStorage` y el backend.
 
-- Avance global y desglose por capítulo.
-- Gráficos interactivos en barras y pastel.
-- Vista de notas y video de seguimiento.
-- Formularios para agregar capítulos, eliminar capítulos, crear proyectos y gestionar usuarios.
-- Un selector de proyectos con proyecto activo persistido en `localStorage`.
+La solución combina un frontend HTML/CSS/JavaScript con un backend Express y PostgreSQL, y ya no depende exclusivamente del almacenamiento local del navegador.
 
-El backend soporta:
+---
 
-- Persistencia en PostgreSQL/Neon.
-- API REST para capítulos, proyectos y usuarios.
-- Historial de cambios de progreso por capítulo.
+## Cambios funcionales implementados
+
+Los cambios funcionales incorporados recientemente incluyen:
+
+- Login con validación de credenciales para superadministradores y usuarios del dashboard.
+- Protección de vistas según sesión activa y rol del usuario.
+- Selección de proyecto activo persistida en `localStorage` para mantener el contexto durante la sesión del usuario.
+- Creación, actualización y eliminación de capítulos asociados al proyecto seleccionado.
+- Registro de historial de progreso por capítulo y visualización del mismo en la vista de detalle.
+- Alta, edición y baja de usuarios con asignación a proyecto y cambio de rol.
+- Gestión de proyectos con progreso, código, descripción y estado.
+- Persistencia real en PostgreSQL con endpoints REST para proyectos, usuarios y capítulos.
+- Sincronización local/backend con fallback automático cuando la API no responde.
+- Inicialización lazy de la base de datos y monta del router tanto en `/api` como en la raíz.
 
 ---
 
@@ -49,28 +62,31 @@ El backend soporta:
 - JavaScript Vanilla
 - Node.js + Express
 - PostgreSQL / Neon DB
-- `localStorage` para estado de sesión y fallback local
+- `localStorage` para sesión, proyecto activo y fallback local
+- `pg` para conexión a la base de datos
+- `cors` para integración del frontend con la API
 
 ---
 
-## Arquitectura
+## Arquitectura del proyecto
 
-El proyecto está dividido en:
+La arquitectura actual está organizada en capas:
 
-- `index.html`: Dashboard principal.
-- `login.html`: Pantalla de login para superadmins.
-- `js/auth.js`: Control de sesión, protección de vistas y logout.
-- `js/dashboard-data.js`: Capa de datos que maneja proyectos, usuarios y capítulos con sincronización local/backend.
-- `js/app.js`: Lógica de renderizado del dashboard, gráficos, formularios y navegación entre secciones.
-- `js/data/superadmins.js`: Gestión de credenciales de superadministradores.
-- `api/index.js`: API REST de Express para la app y la ruta `/api`.
-- `api/db.js`: Conexión a la base de datos PostgreSQL.
+- `index.html`: dashboard principal y panel administrativo.
+- `login.html`: pantalla de acceso.
+- `js/auth.js`: gestión de sesión, login, logout y protección de páginas.
+- `js/dashboard-data.js`: capa de datos con hidratação, sincronización y fallback local.
+- `js/app.js`: renderizado del dashboard, gráficos, formularios, selector de proyecto y lógica de negocio.
+- `js/data/superadmins.js`: usuarios administradores iniciales y validación de credenciales.
+- `api/db.js`: conexión y esquema de base de datos.
+- `api/index.js`: endpoints REST para proyectos, capítulos y usuarios.
+- `server.js`: arranque principal del backend y montaje de la API.
 
 ---
 
-## Estructura del Proyecto
+## Estructura de carpetas
 
-```
+```text
 Dashboard/
 ├── api/
 │   ├── db.js
@@ -85,12 +101,14 @@ Dashboard/
 │   ├── auth.js
 │   ├── dashboard-data.js
 │   └── data/
-│       ├── superadmins.js
-│       └── superadmins.local.js
+│       └── superadmins.js
 ├── index.html
 ├── login.html
+├── package.json
+├── server.js
 ├── README.md
-└── RESUMEN_PROYECTO.md
+├── RESUMEN_PROYECTO.md
+└── vercel.json
 ```
 
 ---
@@ -99,112 +117,111 @@ Dashboard/
 
 ### Requisitos
 
-- Node.js
-- PostgreSQL / Neon DB o una base de datos compatible con `pg`
+- Node.js 18 o superior
+- PostgreSQL o una base compatible con `pg`
+- Variable de entorno `DATABASE_URL` o `POSTGRES_URL` configurada
 
-### Uso local
-
-1. Instalar dependencias si no están instaladas:
+### Instalación
 
 ```bash
 npm install
 ```
 
-2. Configurar la variable de entorno `DATABASE_URL` con la conexión PostgreSQL.
-
-3. Iniciar el servidor backend:
+### Ejecución
 
 ```bash
-node api/index.js
+npm start
 ```
 
-> En este repositorio la lógica del backend está dentro de `api/index.js` y se puede ejecutar como un servidor Express o desplegar en Vercel.
+El comando anterior arrancará el servidor principal en `server.js`, que monta la API en `/api`.
 
-4. Abrir el frontend en el navegador:
+También se puede ejecutar directamente:
 
-- `login.html` para el inicio de sesión.
-- `index.html` para el dashboard.
+```bash
+node server.js
+```
+
+Luego se puede abrir en el navegador:
+
+- `login.html` para iniciar sesión
+- `index.html` para acceder al dashboard principal
 
 ---
 
 ## Autenticación y permisos
 
-El login se gestiona en `js/auth.js` con sesiones guardadas en `localStorage`.
+El flujo de autenticación está implementado con sesiones en `localStorage`:
 
-- `login.html` permite autenticarse con correo o nombre de usuario.
-- Las credenciales iniciales se definen en `js/data/superadmins.js` y pueden combinarse con `js/data/superadmins.local.js`.
-- La sesión activa se guarda bajo `obras_dashboard_session`.
-- El dashboard protege `index.html` y redirige a `login.html` si no hay sesión válida.
+- `obras_dashboard_session` guarda nombre, usuario, correo y rol del usuario autenticado.
+- `login.html` valida la información con `window.SuperadminsDB.validateCredentials()`.
+- `js/auth.js` protege la vista del dashboard y redirige a login si no hay sesión válida.
+- La administración del dashboard está habilitada para usuarios con roles autorizados, principalmente superadministradores y perfiles específicos del proyecto.
 
-### Permisos especiales
+### Permisos básicos del sistema
 
-- Solo los superadmins y el usuario `Gingerlin Molina` pueden:
-  - Ver la vista de administración.
-  - Crear proyectos.
-  - Crear, editar y eliminar usuarios.
+- Superadmins pueden acceder a la gestión administrativa completa.
+- Los usuarios registrados también pueden autenticarse en la plataforma según el sistema integrado.
+- La vista de proyectos y usuarios está visible solo para cuentas con permisos adecuados.
 
 ---
 
 ## Gestión de proyectos y capítulos
 
-La aplicación permite:
+La app permite:
 
-- Crear proyectos nuevos con nombre, descripción y progreso.
-- Seleccionar el proyecto actualmente activo.
-- Agregar capítulos a ese proyecto.
-- Actualizar el progreso de capítulos existentes.
-- Eliminar capítulos.
-- Borrar proyectos desde una vista de prueba.
+- crear nuevos proyectos con nombre, descripción, progreso y código;
+- cambiar el proyecto activo;
+- asociar capítulos al proyecto seleccionado;
+- crear capítulos con orden y progreso;
+- modificar el progreso de un capítulo existente;
+- eliminar capítulos del proyecto;
+- visualizar en detalle el historial de cambios por capítulo.
 
-### Capítulos vinculados al proyecto seleccionado
-
-Al agregar un capítulo, el formulario usa el proyecto activo (`selectedProject.id`).
-Esto garantiza que el capítulo se cree siempre en el proyecto abierto, no en un proyecto por defecto.
+El flujo principal asegúra que los capítulos se agreguen siempre al proyecto activo y no a un valor por defecto arbitrario.
 
 ---
 
 ## Gestión de usuarios
 
-La vista de gestión de usuarios permite:
+La vista de administración de usuarios actualmente permite:
 
-- Crear usuarios con rol `Admin` o `Usuario`.
-- Asignar usuarios a un proyecto.
-- Editar usuarios existentes.
-- Eliminar usuarios.
-- Cambiar proyecto asignado y rol.
+- crear usuarios con nombre, email, username, contraseña y rol;
+- asignar proyecto y proyecto asociado en la entidad del usuario;
+- editar usuarios existentes;
+- eliminar usuarios;
+- cambiar rol y proyecto según el caso de uso del dashboard;
+- sincronizar los usuarios con la base de datos para persistencia real.
 
-### Flujo de edición
-
-- El botón `Editar` carga el usuario en el formulario.
-- El botón `Cancelar edición` restablece el formulario a modo creación.
+El modelo funciona tanto con credenciales iniciales de superadmins como con usuarios creados desde la propia aplicación.
 
 ---
 
 ## Persistencia y sincronización
 
-### Backend persistente
+### Persistencia real
 
-El backend ofrece rutas para:
+El backend expone rutas para persistir y recuperar información en PostgreSQL:
 
-- `GET /api/capitulos` — obtiene capítulos por proyecto y su historial.
+- `GET /api/capitulos` — obtiene capítulos y su historial.
 - `POST /api/capitulos` — crea un capítulo nuevo.
 - `PUT /api/capitulos/:id` — actualiza el progreso y agrega historial.
 - `DELETE /api/capitulos/:id` — elimina un capítulo.
 - `GET /api/proyectos` — lista proyectos.
 - `PUT /api/proyectos` — sincroniza proyectos completos.
 - `GET /api/usuarios` — lista usuarios.
-- `PUT /api/usuarios` — sincroniza usuarios completos.
 - `POST /api/usuarios` — crea un usuario.
 - `PUT /api/usuarios/:id` — actualiza un usuario.
 - `DELETE /api/usuarios/:id` — elimina un usuario.
 
 ### Sincronización local/backend
 
-`js/dashboard-data.js` mantiene datos en `localStorage` y sincroniza con la API cuando está disponible.
+`js/dashboard-data.js` mantiene dos capas de almacenamiento:
 
-- Proyectos y usuarios se hidratan desde el servidor al inicio.
-- Los capítulos se cargan desde la API en función del proyecto activo.
-- Si la API no responde, se usa un fallback local.
+- almacenamiento local en `localStorage` para respuesta rápida y uso sin backend;
+- sincronización con la API cuando está disponible;
+- fallback automático a datos locales si la base de datos no responde.
+
+Esto hace que la aplicación sea resiliente y compatible con despliegues locales y remotos.
 
 ---
 
@@ -212,31 +229,37 @@ El backend ofrece rutas para:
 
 ### `login.html`
 
-- Pantalla de inicio de sesión.
-- Franja superior con tres logos institucionales integrados.
-- Formulario de acceso con validación de credenciales.
+- pantalla de autenticación;
+- validación de credenciales;
+- acceso a la administración del dashboard.
 
 ### `index.html`
 
-- Dashboard principal con:
-  - Vista de progreso global.
-  - Selector de proyectos.
-  - Panel de navegación entre secciones.
-  - Formulario de creación/edición de datos.
-  - Gestión de usuarios y proyectos.
+- vista principal del dashboard;
+- selector de proyectos activos;
+- KPIs del avance general;
+- gráficos y tablas por capítulo;
+- acceso a formularios de proyecto, capítulo y usuario;
+- contenido protegido según sesión activa.
 
 ---
 
-## Mejoras futuras
+## Estado actual
 
-- Integrar el backend de forma nativa con un despliegue en Vercel/Neon.
-- Agregar validación de formularios más estricta en el frontend.
-- Añadir roles más granulares y permisos dinámicos.
-- Permitir editar capítulos y proyectos desde el backend.
-- Implementar carga de archivos e imágenes para cada proyecto.
+El proyecto ya no se limita a un dashboard estático ni a un almacenamiento local aislado. Actualmente presenta una estructura funcional con:
+
+- autenticación real en frontend;
+- roles y permisos básicos;
+- gestión de proyectos y capítulos;
+- CRUD de usuarios;
+- sincronización con PostgreSQL;
+- historial de progreso por capítulo;
+- soporte de fallback local para uso no conectado.
+
+El sistema está listo para continuar ampliándose con mejoras adicionales de UX, validación, roles más granulares y despliegue productivo.
 
 ---
 
 ## Nota final
 
-Este dashboard ya no depende únicamente de `localStorage` para su persistencia. El proyecto ahora soporta almacenamiento real en PostgreSQL y sincronización cliente-servidor para proyectos, usuarios y capítulos.
+La documentación del proyecto debe reflejar que el dashboard ya está funcionando como una solución administrativa con backend, persistencia, gestión de usuarios y control de obra. Los cambios funcionales introducidos se han consolidado y ahora forman parte del comportamiento principal de la aplicación.

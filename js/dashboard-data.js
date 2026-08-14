@@ -424,7 +424,15 @@
   }
 
   function canManageUsers(session) {
-    return isGingerlinSession(session);
+    if (!session) return false;
+    const rol = (session.rol || '').trim().toLowerCase();
+    const nombre = (session.nombre || '').trim().toLowerCase();
+    const username = (session.username || '').trim().toLowerCase();
+
+    if (rol === 'superadmin' || rol === 'programador') return true;
+    if (nombre === 'gingerlin molina' || nombre === 'kevinson campos') return true;
+    if (username === 'gingerlin.m' || username === 'kevinson.c' || username === 'jonas') return true;
+    return false;
   }
 
   function bootstrapRemoteSync() {

@@ -10,6 +10,21 @@
     }
   }
 
+  function isSuperadminLandingUser(session) {
+    if (!session) return false;
+    const nombre = (session.nombre || '').trim().toLowerCase();
+    const username = (session.username || '').trim().toLowerCase();
+    return (
+      session.rol === 'Superadmin' ||
+      session.rol === 'Programador' ||
+      nombre === 'gingerlin molina' ||
+      username === 'gingerlin.m' ||
+      nombre === 'kevinson campos' ||
+      username === 'kevinson.c' ||
+      username === 'jonas'
+    );
+  }
+
   function saveSession(admin) {
     const session = {
       email: admin.email,
@@ -26,15 +41,17 @@
   }
 
   function redirectToLogin() {
-    if (!window.location.pathname.endsWith('login.html')) {
+    if (!window.location.pathname.endsWith('login.html') && !window.location.pathname.endsWith('superadmin-home.html')) {
       window.location.href = 'login.html';
     }
   }
 
   function redirectToDashboard() {
     const pathname = window.location.pathname;
+    const session = getSession();
+    const targetPage = isSuperadminLandingUser(session) ? 'superadmin-home.html' : 'index.html';
     if (pathname.endsWith('login.html') || pathname.endsWith('/')) {
-      window.location.href = 'index.html';
+      window.location.href = targetPage;
     }
   }
 
@@ -115,39 +132,22 @@
     const headerDesc = document.getElementById('header-description');
     const btnAgregarProyecto = document.getElementById('btn-nav-agregar-proyecto');
     const btnGestionUsuarios = document.getElementById('btn-nav-gestion-usuarios');
-    const canManageUsers = window.DashboardData && window.DashboardData.canManageUsers ? window.DashboardData.canManageUsers(session) : false;
 
     if (!session) {
-      // Estado público (no logueado)
-      if (loginLink) loginLink.classList.remove('hidden');
-      if (loggedInContainer) loggedInContainer.classList.add('hidden');
-      if (btnAgregar) btnAgregar.classList.add('hidden');
-      if (btnAgregarProyecto) btnAgregarProyecto.classList.add('hidden');
-      if (btnGestionUsuarios) btnGestionUsuarios.classList.add('hidden');
-      if (headerDesc) headerDesc.textContent = 'Vista pública del estado del proyecto.';
-    } else {
-      // Estado logueado
-      if (loginLink) loginLink.classList.add('hidden');
-      if (loggedInContainer) {
-        loggedInContainer.classList.remove('hidden');
-        loggedInContainer.classList.add('flex');
-      }
-      if (headerDesc) headerDesc.textContent = 'Sesión activa para administración.';
-      renderLoggedUser();
-
-      // Habilitar opciones de administración si es superadmin, Gingerlin o Kevinson
-      if ((session.rol === 'Superadmin' || session.nombre === 'Gingerlin Molina' || session.username === 'Gingerlin.M' || session.nombre === 'Kevinson Campos' || session.username === 'Kevinson.C') && btnAgregar) {
-        btnAgregar.classList.remove('hidden');
-      }
-
-      if ((session.rol === 'Superadmin' || session.nombre === 'Gingerlin Molina' || session.username === 'Gingerlin.M' || session.nombre === 'Kevinson Campos' || session.username === 'Kevinson.C') && btnAgregarProyecto) {
-        btnAgregarProyecto.classList.remove('hidden');
-      }
-
-      if (canManageUsers && btnGestionUsuarios) {
-        btnGestionUsuarios.classList.remove('hidden');
-      }
+      redirectToLogin();
+      return;
     }
+
+    if (loginLink) loginLink.classList.add('hidden');
+    if (loggedInContainer) {
+      loggedInContainer.classList.remove('hidden');
+      loggedInContainer.classList.add('flex');
+    }
+    if (headerDesc) headerDesc.textContent = 'Sesión activa para administración.';
+    if (btnAgregar) btnAgregar.classList.add('hidden');
+    if (btnAgregarProyecto) btnAgregarProyecto.classList.add('hidden');
+    if (btnGestionUsuarios) btnGestionUsuarios.classList.add('hidden');
+    renderLoggedUser();
     hideAuthStatus();
   }
 

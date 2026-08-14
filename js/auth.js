@@ -41,7 +41,8 @@
   }
 
   function redirectToLogin() {
-    if (!window.location.pathname.endsWith('login.html') && !window.location.pathname.endsWith('superadmin-home.html')) {
+    const path = window.location.pathname;
+    if (!path.endsWith('login.html') && !path.endsWith('superadmin-home.html')) {
       window.location.href = 'login.html';
     }
   }
@@ -80,7 +81,7 @@
     if (logoutBtn) {
       logoutBtn.addEventListener('click', () => {
         clearSession();
-        window.location.reload(); // Recargar para volver a la vista pública
+        window.location.href = 'login.html';
       });
     }
   }
@@ -126,17 +127,19 @@
 
   function protectDashboard() {
     const session = getSession();
-    const loginLink = document.getElementById('login-link-btn');
-    const loggedInContainer = document.getElementById('logged-in-container');
-    const btnAgregar = document.getElementById('btn-nav-agregar');
-    const headerDesc = document.getElementById('header-description');
-    const btnAgregarProyecto = document.getElementById('btn-nav-agregar-proyecto');
-    const btnGestionUsuarios = document.getElementById('btn-nav-gestion-usuarios');
 
+    // Sin sesión: redirigir a login de inmediato
     if (!session) {
       redirectToLogin();
       return;
     }
+
+    // Sesión válida: revelar la UI y ocultar botón de login
+    const loginLink = document.getElementById('login-link-btn');
+    const loggedInContainer = document.getElementById('logged-in-container');
+    const btnAgregar = document.getElementById('btn-nav-agregar');
+    const headerDesc = document.getElementById('header-description');
+    const mainEl = document.getElementById('main-content');
 
     if (loginLink) loginLink.classList.add('hidden');
     if (loggedInContainer) {
@@ -144,9 +147,15 @@
       loggedInContainer.classList.add('flex');
     }
     if (headerDesc) headerDesc.textContent = 'Sesión activa para administración.';
-    if (btnAgregar) btnAgregar.classList.add('hidden');
-    if (btnAgregarProyecto) btnAgregarProyecto.classList.add('hidden');
-    if (btnGestionUsuarios) btnGestionUsuarios.classList.add('hidden');
+    // btn-nav-agregar se muestra solo si el usuario tiene rol de edición
+    if (btnAgregar) btnAgregar.classList.remove('hidden');
+    // btn-nav-agregar-proyecto y btn-nav-gestion-usuarios NUNCA se muestran en el
+    // dashboard — esas acciones se hacen desde superadmin-home.html exclusivamente.
+    // Sus clases 'hidden' en el HTML son suficientes; no se tocan aquí.
+
+    // Anti-flash: revelar el main ahora que la sesión está validada
+    if (mainEl) mainEl.classList.remove('opacity-0', 'pointer-events-none');
+
     renderLoggedUser();
     hideAuthStatus();
   }

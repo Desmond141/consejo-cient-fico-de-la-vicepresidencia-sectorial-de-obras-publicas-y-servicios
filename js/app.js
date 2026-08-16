@@ -702,13 +702,12 @@ function renderUserCards() {
 function setApiConnectionStatus(message, success) {
   const el = document.getElementById('api-connection-status');
   if (!el) return;
-  el.textContent = message;
-  el.className = 'rounded-2xl border px-4 py-3 text-sm font-medium';
   if (success) {
-    el.classList.add('bg-emerald-500/10', 'border-emerald-500/20', 'text-emerald-200');
-  } else {
-    el.classList.add('bg-rose-500/10', 'border-rose-500/20', 'text-rose-200');
+    el.classList.add('hidden');
+    return;
   }
+  el.textContent = message;
+  el.className = 'rounded-2xl border px-4 py-3 text-sm font-medium bg-rose-500/10 border-rose-500/20 text-rose-200';
   el.classList.remove('hidden');
 }
 

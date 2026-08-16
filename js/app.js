@@ -149,7 +149,6 @@ async function loadProjectView() {
   renderGraficoDashboard();
   renderTabla();
   bindDraggables();
-  poblarProjectSwitcher();
   renderProjectContext();
 }
 
@@ -569,7 +568,6 @@ function syncProjectsFromDataLayer() {
 
 function refreshDashboardDataView() {
   syncProjectsFromDataLayer();
-  poblarProjectSwitcher();
   renderProjectContext();
 }
 

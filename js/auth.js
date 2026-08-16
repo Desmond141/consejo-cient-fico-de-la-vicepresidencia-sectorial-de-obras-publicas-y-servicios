@@ -149,6 +149,11 @@
     if (headerDesc) headerDesc.textContent = 'Sesión activa para administración.';
     // btn-nav-agregar se muestra solo si el usuario tiene rol de edición
     if (btnAgregar) btnAgregar.classList.remove('hidden');
+    // Botón "Inicio Admin": solo visible para superadmins
+    const btnHomeAdmin = document.getElementById('btn-superadmin-home');
+    if (btnHomeAdmin && isSuperadminLandingUser(session)) {
+      btnHomeAdmin.classList.remove('hidden');
+    }
     // btn-nav-agregar-proyecto y btn-nav-gestion-usuarios NUNCA se muestran en el
     // dashboard — esas acciones se hacen desde superadmin-home.html exclusivamente.
     // Sus clases 'hidden' en el HTML son suficientes; no se tocan aquí.

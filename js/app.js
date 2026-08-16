@@ -149,10 +149,6 @@ async function loadProjectView() {
   renderGraficoDashboard();
   renderTabla();
   bindDraggables();
-  renderProjectCards();
-  renderUserCards();
-  poblarSelectProyectosUsuario();
-  poblarSelectProyectosEliminar();
   poblarProjectSwitcher();
   renderProjectContext();
 }
@@ -573,10 +569,6 @@ function syncProjectsFromDataLayer() {
 
 function refreshDashboardDataView() {
   syncProjectsFromDataLayer();
-  renderProjectCards();
-  renderUserCards();
-  poblarSelectProyectosUsuario();
-  poblarSelectProyectosEliminar();
   poblarProjectSwitcher();
   renderProjectContext();
 }

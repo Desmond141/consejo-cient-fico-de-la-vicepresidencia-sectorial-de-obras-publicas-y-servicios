@@ -139,11 +139,17 @@ function renderProjectContext() {
   if (title && project) {
     title.textContent = project.nombre;
   }
+
+  renderHistorialPorCapitulos();
+  if (project) {
+    renderNodosCriticos(project.id);
+  }
 }
 
 async function loadProjectView() {
   await fetchCapitulos();
   poblarSelectCapitulos();
+  poblarSelectCapitulosDiario();
   AVANCE_GLOBAL = calcularAvanceGlobal();
   actualizarContadoresDinamicos();
   renderGraficoDashboard();
@@ -730,6 +736,240 @@ async function checkApiConnection() {
   }
 }
 
+// ══════════════════════════════════════════════════════════
+//  Historial inline por Capítulos
+// ══════════════════════════════════════════════════════════
+
+function renderHistorialPorCapitulos() {
+  const contenedor = document.getElementById('historial-por-capitulos');
+  if (!contenedor) return;
+
+  if (!capitulos || capitulos.length === 0) {
+    contenedor.innerHTML = `
+      <div class="text-center py-8 px-4 glass rounded-2xl border-dashed border-2 border-slate-700/50">
+        <p class="text-slate-500 text-sm">No hay capítulos cargados en este proyecto.</p>
+      </div>`;
+    return;
+  }
+
+  contenedor.innerHTML = capitulos.map(cap => {
+    const historial = Array.isArray(cap.historial) ? cap.historial : [];
+    const entradas = historial.length > 0
+      ? historial.map(h => {
+          const date = new Date(h.fecha);
+          const fechaFmt = date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const esDiario = (h.tipo === 'diario');
+          const badgeClass = esDiario
+            ? 'bg-amber-500/10 text-amber-300 border border-amber-400/25'
+            : 'bg-sky-500/10 text-sky-300 border border-sky-400/25';
+          const badgeLabel = esDiario ? 'Diario' : 'Avance';
+          const progresoBadge = esDiario
+            ? ''
+            : `<span class="text-xs font-bold text-sky-400 bg-sky-500/10 px-2 py-1 rounded-lg ml-2">${h.progresoAnterior}% → ${h.progresoNuevo}%</span>`;
+          return `
+            <div class="flex gap-3 py-3 border-b border-slate-700/30 last:border-0">
+              <div class="flex flex-col items-center pt-1">
+                <div class="w-2 h-2 rounded-full ${esDiario ? 'bg-amber-400' : 'bg-sky-400'} flex-shrink-0 mt-0.5"></div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1">
+                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${badgeClass}">${badgeLabel}</span>
+                  <span class="text-[11px] text-slate-500">${fechaFmt}</span>
+                  ${progresoBadge}
+                </div>
+                <p class="text-sm text-slate-300 leading-relaxed">${h.descripcion || 'Sin descripción'}</p>
+              </div>
+            </div>`;
+        }).join('')
+      : `<p class="text-sm text-slate-600 italic py-2">Sin actividad registrada</p>`;
+
+    return `
+      <div class="glass-strong rounded-xl p-5 border border-slate-700/40">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-5 h-5 rounded bg-sky-400/15 text-[10px] font-bold text-sky-300 flex items-center justify-center flex-shrink-0">${cap.nombre.charAt(0).toUpperCase()}</span>
+          <h4 class="text-sm font-semibold text-slate-200">${cap.nombre}</h4>
+          <span class="ml-auto text-xs font-bold text-sky-400">${cap.progreso}%</span>
+        </div>
+        <div class="divide-y divide-slate-700/20">${entradas}</div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  Nodos Críticos
+// ══════════════════════════════════════════════════════════
+
+async function renderNodosCriticos(projectId) {
+  const contenedor = document.getElementById('lista-nodos-criticos');
+  if (!contenedor) return;
+  if (!projectId) {
+    contenedor.innerHTML = '<p class="text-sm text-slate-600 italic">Sin proyecto seleccionado.</p>';
+    return;
+  }
+  try {
+    const nodos = await window.DashboardData.getCriticalNodes(projectId);
+    if (!nodos || nodos.length === 0) {
+      contenedor.innerHTML = `
+        <div class="text-center py-6">
+          <svg class="w-10 h-10 mx-auto text-slate-700 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <p class="text-sm text-slate-600 italic">Sin nodos críticos registrados</p>
+        </div>`;
+      return;
+    }
+    contenedor.innerHTML = nodos.map(n => {
+      const fecha = new Date(n.fecha).toLocaleDateString('es-ES');
+      return `
+        <div class="glass-strong rounded-xl p-4 border border-rose-400/15">
+          <div class="flex items-start gap-2 mb-1.5">
+            <svg class="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <p class="text-sm font-semibold text-rose-200 leading-tight">${n.titulo}</p>
+          </div>
+          ${n.descripcion ? `<p class="text-xs text-slate-400 leading-relaxed mb-2 pl-6">${n.descripcion}</p>` : ''}
+          <p class="text-[10px] text-slate-600 pl-6">${fecha}</p>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    console.warn('No se pudo renderizar nodos críticos:', err);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  Diario de Obras
+// ══════════════════════════════════════════════════════════
+
+function poblarSelectCapitulosDiario() {
+  const selectDiario = document.getElementById('select-capitulo-diario');
+  if (!selectDiario) return;
+  selectDiario.innerHTML = '';
+  if (!capitulos || capitulos.length === 0) {
+    const emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = 'Sin capítulos disponibles';
+    selectDiario.appendChild(emptyOpt);
+    return;
+  }
+  capitulos.forEach((cap, index) => {
+    const option = document.createElement('option');
+    option.value = index;
+    option.textContent = `${index + 1}. ${cap.nombre}`;
+    selectDiario.appendChild(option);
+  });
+}
+
+function initDiarioView(session) {
+  const sinProyecto = document.getElementById('diario-sin-proyecto');
+  const conProyecto = document.getElementById('diario-con-proyecto');
+  if (!sinProyecto || !conProyecto) return;
+
+  const tieneProyecto = session && session.proyectoId && String(session.proyectoId).trim() !== '';
+
+  if (tieneProyecto) {
+    sinProyecto.classList.add('hidden');
+    conProyecto.classList.remove('hidden');
+    poblarSelectCapitulosDiario();
+  } else {
+    conProyecto.classList.add('hidden');
+    sinProyecto.classList.remove('hidden');
+  }
+}
+
+const formDiario = document.getElementById('form-diario');
+const diarioSuccessMessage = document.getElementById('diario-success-message');
+
+if (formDiario) {
+  formDiario.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const selectDiario = document.getElementById('select-capitulo-diario');
+    const inputDescDiario = document.getElementById('input-desc-diario');
+    const chapterIndex = selectDiario ? parseInt(selectDiario.value, 10) : NaN;
+    const descripcion = inputDescDiario ? inputDescDiario.value.trim() : '';
+
+    if (isNaN(chapterIndex) || !capitulos[chapterIndex]) {
+      showToast('Selecciona un capítulo válido', false);
+      return;
+    }
+    if (!descripcion) {
+      showToast('La descripción es requerida', false);
+      return;
+    }
+
+    const cap = capitulos[chapterIndex];
+    const capId = cap.id;
+    const progresoActual = cap.progreso;
+    const fechaActual = new Date().toISOString();
+    const historyEntry = {
+      fecha: fechaActual,
+      descripcion,
+      progresoAnterior: progresoActual,
+      progresoNuevo: progresoActual,
+      tipo: 'diario'
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/${encodeURIComponent(capId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progreso: progresoActual, nuevoHistorial: historyEntry })
+      });
+      if (!res.ok) throw new Error('API error');
+    } catch (apiErr) {
+      console.warn('No se pudo guardar en servidor, guardando localmente.', apiErr);
+      const selectedProject = getSelectedProject();
+      if (selectedProject) {
+        const chapters = window.DashboardData.getProjectChapters(selectedProject.id) || [];
+        if (chapters[chapterIndex]) {
+          chapters[chapterIndex].historial = chapters[chapterIndex].historial || [];
+          chapters[chapterIndex].historial.push(historyEntry);
+          window.DashboardData.saveProjectChapters(selectedProject.id, chapters);
+        }
+      }
+    }
+
+    if (diarioSuccessMessage) {
+      diarioSuccessMessage.classList.remove('hidden');
+      setTimeout(() => diarioSuccessMessage.classList.add('hidden'), 4000);
+    }
+    formDiario.reset();
+    await loadProjectView();
+  });
+}
+
+// Nodo Crítico form handler
+const formNodoCritico = document.getElementById('form-nodo-critico');
+const nodoSuccessMessage = document.getElementById('nodo-success-message');
+
+if (formNodoCritico) {
+  formNodoCritico.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const titulo = document.getElementById('input-titulo-nodo').value.trim();
+    const descripcion = document.getElementById('input-desc-nodo').value.trim();
+    const selectedProject = getSelectedProject();
+
+    if (!titulo) {
+      showToast('El título del nodo es requerido', false);
+      return;
+    }
+    if (!selectedProject) {
+      showToast('No hay proyecto seleccionado', false);
+      return;
+    }
+
+    try {
+      await window.DashboardData.addCriticalNode(selectedProject.id, { titulo, descripcion });
+      showToast('Nodo crítico registrado correctamente');
+      if (nodoSuccessMessage) {
+        nodoSuccessMessage.classList.remove('hidden');
+        setTimeout(() => nodoSuccessMessage.classList.add('hidden'), 4000);
+      }
+      formNodoCritico.reset();
+      await renderNodosCriticos(selectedProject.id);
+    } catch (err) {
+      showToast('Error al registrar el nodo crítico', false);
+      console.error('Error al guardar nodo crítico:', err);
+    }
+  });
+}
+
 async function initApp() {
   loadSelectedProjectId();
   await checkApiConnection();
@@ -742,9 +982,22 @@ async function initApp() {
   }
   await loadProjectView();
 
-  const hash = (window.location.hash || '').replace('#', '').trim();
-  if (hash === 'proyectos' || hash === 'usuarios' || hash === 'agregar') {
-    cambiarVista(hash);
+  const session = window.Auth && typeof window.Auth.getSession === 'function' ? window.Auth.getSession() : null;
+
+  if (session && session.rol === 'Usuario') {
+    // Para usuarios regulares: establecer su proyecto asignado y cargar capítulos
+    if (session.proyectoId && String(session.proyectoId).trim() !== '') {
+      saveSelectedProjectId(session.proyectoId);
+      await loadProjectView();
+    }
+    // Navegar directo al Diario de Obras
+    cambiarVista('diario');
+    initDiarioView(session);
+  } else {
+    const hash = (window.location.hash || '').replace('#', '').trim();
+    if (hash === 'proyectos' || hash === 'usuarios' || hash === 'agregar') {
+      cambiarVista(hash);
+    }
   }
 
   if (typeof setFechaActual === 'function') {

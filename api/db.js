@@ -122,6 +122,20 @@ async function initDB() {
       ]);
     }
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS nodos_criticos (
+        id SERIAL PRIMARY KEY,
+        project_id VARCHAR(255) NOT NULL,
+        titulo VARCHAR(255) NOT NULL,
+        descripcion TEXT,
+        fecha TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await client.query(`
+      ALTER TABLE historial ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) DEFAULT 'avance';
+    `);
+
     console.log('Base de datos inicializada con éxito.');
   } catch (err) {
     console.error('Error inicializando base de datos:', err);

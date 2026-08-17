@@ -439,6 +439,88 @@
     return Promise.all([hydrateProjectsFromServer(), hydrateUsersFromServer()]);
   }
 
+  // ──────────────── Nodos Críticos ────────────────
+
+  const CRITICAL_NODES_API = '/api/nodos-criticos';
+  const CRITICAL_NODES_KEY = 'obras_dashboard_critical_nodes';
+
+  function getCriticalNodesLocal(projectId) {
+    try {
+      const raw = localStorage.getItem(CRITICAL_NODES_KEY);
+      const map = raw ? JSON.parse(raw) : {};
+      return Array.isArray(map[projectId]) ? map[projectId] : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveCriticalNodesLocal(projectId, nodes) {
+    try {
+      const raw = localStorage.getItem(CRITICAL_NODES_KEY);
+      const map = raw ? JSON.parse(raw) : {};
+      map[projectId] = Array.isArray(nodes) ? nodes : [];
+      localStorage.setItem(CRITICAL_NODES_KEY, JSON.stringify(map));
+    } catch (e) {
+      console.warn('No se pudo guardar nodos críticos localmente:', e);
+    }
+  }
+
+  async function getCriticalNodes(projectId) {
+    if (!projectId) return [];
+    try {
+      const res = await fetch(`${CRITICAL_NODES_API}?projectId=${encodeURIComponent(projectId)}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data = await res.json();
+      const nodes = Array.isArray(data) ? data : [];
+      saveCriticalNodesLocal(projectId, nodes);
+      return nodes;
+    } catch (err) {
+      console.warn('No se pudo leer nodos críticos del servidor, usando fallback local:', err);
+      return getCriticalNodesLocal(projectId);
+    }
+  }
+
+  async function addCriticalNode(projectId, { titulo, descripcion }) {
+    if (!projectId || !titulo) return null;
+    const payload = { projectId, titulo: String(titulo).trim(), descripcion: descripcion || '' };
+    try {
+      const res = await fetch(CRITICAL_NODES_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      const data = await res.json();
+      // Refrescar caché local desde servidor
+      await getCriticalNodes(projectId);
+      return data.nodo || null;
+    } catch (err) {
+      console.warn('No se pudo crear nodo crítico en servidor, guardando localmente:', err);
+      const local = getCriticalNodesLocal(projectId);
+      const nodo = {
+        id: `local-${Math.random().toString(36).slice(2, 10)}`,
+        projectId,
+        titulo: payload.titulo,
+        descripcion: payload.descripcion,
+        fecha: new Date().toISOString()
+      };
+      local.unshift(nodo);
+      saveCriticalNodesLocal(projectId, local);
+      return nodo;
+    }
+  }
+
+  async function deleteCriticalNode(nodeId) {
+    try {
+      const res = await fetch(`${CRITICAL_NODES_API}/${encodeURIComponent(nodeId)}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return true;
+    } catch (err) {
+      console.warn('No se pudo eliminar nodo crítico en servidor:', err);
+      return false;
+    }
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootstrapRemoteSync);
   } else {
@@ -463,6 +545,9 @@
     canManageUsers,
     canManageProjects,
     isGingerlinSession,
+    getCriticalNodes,
+    addCriticalNode,
+    deleteCriticalNode,
     hydrateRemoteData: bootstrapRemoteSync
   };
 })();

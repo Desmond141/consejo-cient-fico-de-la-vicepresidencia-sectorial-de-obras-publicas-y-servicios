@@ -137,7 +137,6 @@
     // Sesión válida: revelar la UI y ocultar botón de login
     const loginLink = document.getElementById('login-link-btn');
     const loggedInContainer = document.getElementById('logged-in-container');
-    const btnAgregar = document.getElementById('btn-nav-agregar');
     const headerDesc = document.getElementById('header-description');
     const mainEl = document.getElementById('main-content');
 
@@ -147,16 +146,33 @@
       loggedInContainer.classList.add('flex');
     }
     if (headerDesc) headerDesc.textContent = 'Sesión activa para administración.';
-    // btn-nav-agregar se muestra solo si el usuario tiene rol de edición
-    if (btnAgregar) btnAgregar.classList.remove('hidden');
-    // Botón "Inicio Admin": solo visible para superadmins
-    const btnHomeAdmin = document.getElementById('btn-superadmin-home');
-    if (btnHomeAdmin && isSuperadminLandingUser(session)) {
-      btnHomeAdmin.classList.remove('hidden');
+
+    const isUsuario = session.rol === 'Usuario';
+
+    if (isUsuario) {
+      // Rol Usuario: ocultar toda la nav excepto Diario de Obras
+      ['btn-nav-agregar', 'btn-superadmin-home'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      // Ocultar los botones de nav que tienen data-vista (dashboard, pin1, pin2, pin3)
+      document.querySelectorAll('.nav-btn[data-vista]').forEach(btn => {
+        const vista = btn.dataset.vista;
+        if (vista !== 'diario') btn.classList.add('hidden');
+      });
+      // Revelar solo el botón Diario de Obras
+      const btnDiario = document.getElementById('btn-nav-diario');
+      if (btnDiario) btnDiario.classList.remove('hidden');
+    } else {
+      // Roles superiores: revelar btn-nav-agregar según permisos
+      const btnAgregar = document.getElementById('btn-nav-agregar');
+      if (btnAgregar) btnAgregar.classList.remove('hidden');
+      // btn-superadmin-home: solo para superadmins
+      const btnHomeAdmin = document.getElementById('btn-superadmin-home');
+      if (btnHomeAdmin && isSuperadminLandingUser(session)) {
+        btnHomeAdmin.classList.remove('hidden');
+      }
     }
-    // btn-nav-agregar-proyecto y btn-nav-gestion-usuarios NUNCA se muestran en el
-    // dashboard — esas acciones se hacen desde superadmin-home.html exclusivamente.
-    // Sus clases 'hidden' en el HTML son suficientes; no se tocan aquí.
 
     // Anti-flash: revelar el main ahora que la sesión está validada
     if (mainEl) mainEl.classList.remove('opacity-0', 'pointer-events-none');

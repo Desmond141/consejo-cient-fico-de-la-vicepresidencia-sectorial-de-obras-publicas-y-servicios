@@ -154,8 +154,8 @@ router.post('/capitulos', async (req, res) => {
     if (historial && historial.length > 0) {
       const h = historial[0];
       await db.query(
-        'INSERT INTO historial (capitulo_id, fecha, descripcion, progreso_anterior, progreso_nuevo) VALUES ($1, $2, $3, $4, $5)',
-        [capId, h.fecha, h.descripcion, h.progresoAnterior, h.progresoNuevo]
+        'INSERT INTO historial (capitulo_id, fecha, descripcion, progreso_anterior, progreso_nuevo, tipo) VALUES ($1, $2, $3, $4, $5, $6)',
+        [capId, h.fecha, h.descripcion, h.progresoAnterior, h.progresoNuevo, h.tipo || 'avance']
       );
     }
 
@@ -188,8 +188,8 @@ router.put('/capitulos/:id', async (req, res) => {
 
     if (nuevoHistorial) {
       await db.query(
-        'INSERT INTO historial (capitulo_id, fecha, descripcion, progreso_anterior, progreso_nuevo) VALUES ($1, $2, $3, $4, $5)',
-        [id, nuevoHistorial.fecha, nuevoHistorial.descripcion, nuevoHistorial.progresoAnterior, nuevoHistorial.progresoNuevo]
+        'INSERT INTO historial (capitulo_id, fecha, descripcion, progreso_anterior, progreso_nuevo, tipo) VALUES ($1, $2, $3, $4, $5, $6)',
+        [id, nuevoHistorial.fecha, nuevoHistorial.descripcion, nuevoHistorial.progresoAnterior, nuevoHistorial.progresoNuevo, nuevoHistorial.tipo || 'avance']
       );
     }
 
@@ -360,6 +360,72 @@ router.delete('/usuarios/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al eliminar usuario' });
+  }
+});
+
+// ──────────────── Nodos Críticos ────────────────
+
+// GET /api/nodos-criticos?projectId=...
+router.get('/nodos-criticos', async (req, res) => {
+  const { projectId } = req.query;
+  if (!projectId) {
+    return res.status(400).json({ error: 'Se requiere el parámetro projectId' });
+  }
+  try {
+    const result = await db.query(
+      'SELECT * FROM nodos_criticos WHERE project_id = $1 ORDER BY fecha DESC',
+      [projectId]
+    );
+    res.json(result.rows.map(row => ({
+      id: row.id,
+      projectId: row.project_id,
+      titulo: row.titulo,
+      descripcion: row.descripcion,
+      fecha: row.fecha
+    })));
+  } catch (err) {
+    console.error('Error al leer nodos críticos:', err);
+    res.status(500).json({ error: 'Error al leer nodos críticos' });
+  }
+});
+
+// POST /api/nodos-criticos  { projectId, titulo, descripcion }
+router.post('/nodos-criticos', async (req, res) => {
+  const { projectId, titulo, descripcion } = req.body || {};
+  if (!projectId || !titulo || String(titulo).trim() === '') {
+    return res.status(400).json({ error: 'Los campos projectId y titulo son requeridos' });
+  }
+  try {
+    const result = await db.query(
+      'INSERT INTO nodos_criticos (project_id, titulo, descripcion) VALUES ($1, $2, $3) RETURNING *',
+      [projectId, String(titulo).trim(), descripcion || '']
+    );
+    const row = result.rows[0];
+    res.json({
+      success: true,
+      nodo: {
+        id: row.id,
+        projectId: row.project_id,
+        titulo: row.titulo,
+        descripcion: row.descripcion,
+        fecha: row.fecha
+      }
+    });
+  } catch (err) {
+    console.error('Error al crear nodo crítico:', err);
+    res.status(500).json({ error: 'Error al crear nodo crítico' });
+  }
+});
+
+// DELETE /api/nodos-criticos/:id
+router.delete('/nodos-criticos/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.query('DELETE FROM nodos_criticos WHERE id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error al eliminar nodo crítico:', err);
+    res.status(500).json({ error: 'Error al eliminar nodo crítico' });
   }
 });
 

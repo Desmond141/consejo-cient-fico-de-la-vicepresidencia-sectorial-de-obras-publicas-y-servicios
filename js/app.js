@@ -449,6 +449,15 @@ function cambiarVista(vistaId) {
   if (navBtn) navBtn.classList.add('activo');
   if (vista) vista.classList.add('activa');
 
+  const video = document.getElementById('obra-video');
+  if (video) {
+    if (vistaId === 'dashboard') {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }
+
   resetBarras(vista);
   resetAnillo();
   setTimeout(() => {
@@ -463,6 +472,11 @@ function cambiarVista(vistaId) {
 function abrirDetalleCapitulo(index) {
   const cap = capitulos[index];
   if (!cap) return;
+
+  const video = document.getElementById('obra-video');
+  if (video) {
+    video.pause();
+  }
 
   // Ocultar vistas actuales y limpiar nav
   document.querySelectorAll('.vista').forEach(v => v.classList.remove('activa'));
